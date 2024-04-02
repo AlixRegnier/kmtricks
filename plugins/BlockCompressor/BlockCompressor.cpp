@@ -271,8 +271,6 @@ class BlockCompressor : public km::IMergePlugin
         }
 };
 
-int BlockCompressor::instances = 0;
-
 extern "C" std::string plugin_name() { return "BlockCompressor"; }
 extern "C" int use_template() { return 0; }
 extern "C" km::IMergePlugin* create0() { return new BlockCompressor(); }
