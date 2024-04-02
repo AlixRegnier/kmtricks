@@ -13,8 +13,8 @@ endforeach()
 include(ExternalProject)
 
 # Define the XZ Utils repository URL and tag
-set(XZ_REPO_URL "https://github.com/tukaani-project/xz.git")
-set(XZ_REPO_TAG "v5.6.1")  # Adjust the tag as needed
+set(XZ_REPO_URL "https://git.tukaani.org/xz.git")
+set(XZ_REPO_TAG "v5.4.6")  # Adjust the tag as needed
 
 # Add XZ Utils as an external project
 ExternalProject_Add(
@@ -28,9 +28,10 @@ ExternalProject_Add(
 	    cd ${CMAKE_BINARY_DIR}/plugins/xz/src/xz && 
   	  ./autogen.sh && 
 	    ./configure --prefix=${CMAKE_BINARY_DIR}/xz --disable-shared && 
-	    make -C ${CMAKE_BINARY_DIR}/plugins/xz/src/xz/src/liblzma install &&
+      make -C src/liblzma install &&
 	    cd -
 
+	  #make -C ${CMAKE_BINARY_DIR}/plugins/xz/src/xz/src/liblzma install &&
     INSTALL_COMMAND ""
     BUILD_COMMAND ""
 )
@@ -44,4 +45,4 @@ target_include_directories(BlockCompressor PUBLIC ${CMAKE_BINARY_DIR}/xz/include
 # Specify link directories for XZ
 target_link_directories(BlockCompressor PRIVATE ${CMAKE_BINARY_DIR}/xz/lib)
 
-target_link_libraries(BlockCompressor PRIVATE build_type_flags headers ${CMAKE_BINARY_DIR}/xz/lib/liblzma.a)
+target_link_libraries(BlockCompressor PRIVATE build_type_flags headers)# ${CMAKE_BINARY_DIR}/xz/lib/liblzma.a)

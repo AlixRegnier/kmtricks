@@ -106,8 +106,12 @@ public:
   P* get_plugin()
   {
     P* p = m_load_plugin();
-    p->configure(m_config);
     return p;
+  }
+
+  const std::string& get_config()
+  {
+    return m_config;
   }
 
   void destroy_plugin(P* p)

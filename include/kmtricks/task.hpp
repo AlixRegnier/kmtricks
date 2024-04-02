@@ -648,6 +648,7 @@ public:
       plugin->set_out_dir(KmDir::get().m_plugin_storage);
       plugin->set_kmer_size(m_kmer_size);
       plugin->set_partition(m_part_id);
+      plugin->configure(PluginManager<IMergePlugin>::get().get_config());
       merger.set_plugin(plugin);
     }
 #endif
@@ -746,6 +747,7 @@ public:
       plugin->set_out_dir(KmDir::get().m_plugin_storage);
       plugin->set_kmer_size(0);
       plugin->set_partition(m_part_id);
+      plugin->configure(PluginManager<IMergePlugin>::get().get_config());
       merger.set_plugin(plugin);
     }
 #endif
