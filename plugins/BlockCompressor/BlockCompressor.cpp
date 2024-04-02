@@ -90,7 +90,7 @@ class BlockCompressor : public km::IMergePlugin
         void write_buffer()
         {
             std::size_t in_size = in_buffer_current_size ? in_buffer_current_size : in_buffer.size();
-            std::size_t out_size;
+            std::size_t out_size = 0;
             
             //Let default allocator by passing NULL (malloc/free)
             lzma_ret code = lzma_raw_buffer_encode(filters, NULL, in_buffer.data(), in_size, out_buffer.data(), &out_size, out_buffer_size);
@@ -145,15 +145,8 @@ class BlockCompressor : public km::IMergePlugin
         {
             //Fill vector starting from its "current size"
             for(std::size_t i = 0; i < m_buffer.size(); ++i)
-            {
-                if(in_buffer_current_size + i < in_buffer.size())
-                    in_buffer[in_buffer_current_size + i] = m_buffer[i];
-                else
-                {
-                    std::cout << (in_buffer_current_size + i) << "###\n";
-                    throw std::runtime_error("INDEX OUT OF RANGE");
-                }
-            }
+                in_buffer[in_buffer_current_size + i] = m_buffer[i];
+             
             ++lines_read;
 
             // Update variables tracking data to use in in_buffer vector

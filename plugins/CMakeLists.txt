@@ -28,10 +28,11 @@ ExternalProject_Add(
 	    cd ${CMAKE_BINARY_DIR}/plugins/xz/src/xz && 
   	  ./autogen.sh && 
 	    ./configure --prefix=${CMAKE_BINARY_DIR}/xz --disable-shared && 
+
+      #Compile only liblzma
       make -C src/liblzma install &&
 	    cd -
 
-	  #make -C ${CMAKE_BINARY_DIR}/plugins/xz/src/xz/src/liblzma install &&
     INSTALL_COMMAND ""
     BUILD_COMMAND ""
 )
@@ -45,4 +46,5 @@ target_include_directories(BlockCompressor PUBLIC ${CMAKE_BINARY_DIR}/xz/include
 # Specify link directories for XZ
 target_link_directories(BlockCompressor PRIVATE ${CMAKE_BINARY_DIR}/xz/lib)
 
-target_link_libraries(BlockCompressor PRIVATE build_type_flags headers)# ${CMAKE_BINARY_DIR}/xz/lib/liblzma.a)
+# Specify link xz library file
+target_link_libraries(BlockCompressor PRIVATE build_type_flags headers ${CMAKE_BINARY_DIR}/xz/lib/liblzma.a)
