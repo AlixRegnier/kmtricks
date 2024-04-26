@@ -101,10 +101,9 @@ const std::uint8_t* BlockDecompressor::get_bit_vector_from_hash(std::uint64_t ha
     std::uint64_t hash_index = hash % config.get_lines_per_block();
 
     if(block_index + 1 >= ef_pos.size()) //Handle queried hashes that are out of matrix
-    {
         return nullptr;
-    }
-    else if(block_index != decoded_block_index) //Avoid decompressing a block that was decompressed on last call
+        
+    if(block_index != decoded_block_index) //Avoid decompressing a block that was decompressed on last call
     {
         read_once = true;
         decode_block(block_index);
