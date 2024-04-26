@@ -121,7 +121,7 @@ const std::uint8_t* BlockDecompressor::get_bit_vector_from_hash(std::uint64_t ha
 void BlockDecompressor::decompress_all(const std::string& out_path)
 {
     std::ofstream out_file;
-    out_file.open(out_path, std::ios::out | std::ios::binary);
+    out_file.open(out_path, std::ofstream::binary);
     std::size_t decoded_size;
 
     //i < ef_pos.size() - 1 but as it is unsigned, avoid possible underflows if ef_pos is empty
