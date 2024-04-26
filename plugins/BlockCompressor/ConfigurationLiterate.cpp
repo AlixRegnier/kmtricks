@@ -1,7 +1,5 @@
-#include <fstream>
-#include <iostream>
+#include <ConfigurationLiterate.h>
 #include <filesystem>
-#include "ConfigurationLiterate.h"
 
 ConfigurationLiterate::ConfigurationLiterate(const std::string& filename, bool load_file) 
 { 

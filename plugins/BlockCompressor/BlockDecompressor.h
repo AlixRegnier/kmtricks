@@ -2,9 +2,8 @@
 #define BLOCKDECOMPRESSOR_H
 
 #include <cassert>
-#include <iostream>
+#include <ConfigurationLiterate.h>
 #include <fstream>
-#include "ConfigurationLiterate.h"
 #include <lzma.h>
 #include <vector>
 

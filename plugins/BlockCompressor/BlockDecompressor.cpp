@@ -1,8 +1,4 @@
-#include <iostream>
-#include <fstream>
 #include <BlockDecompressor.h>
-#include <lzma.h>
-#include <vector>
 
 int main(int argc, char ** argv)
 {

@@ -1,6 +1,5 @@
 #include <BlockCompressor.h>
 
-
 void BlockCompressor::assert_lzma_ret(lzma_ret code)
 {
     switch(code)
