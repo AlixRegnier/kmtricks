@@ -67,8 +67,9 @@ BlockCompressor::BlockCompressor()
 
 BlockCompressor::~BlockCompressor()
 {
-    //Take into account last possible empty bit_vectors to be added to blocks
-    fill_zero_buffers(maximum_hash - previous_hash);
+    //Check for a possible underflow that would add a huge amount of buffers of zeroes
+    if(maximum_hash != previous_hash)
+       fill_zero_buffers(maximum_hash - previous_hash - 1); //Take into account last possible empty bit_vectors to be added to blocks
 
     //Write a smaller block if buffer isn't empty
     if(in_buffer_current_size != 0)
