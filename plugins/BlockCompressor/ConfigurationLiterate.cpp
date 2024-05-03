@@ -85,13 +85,15 @@ void ConfigurationLiterate::set_bit_vectors_per_block(std::size_t bit_vectors_pe
 {
     if(this->bit_vectors_per_block == 0) 
         throw std::invalid_argument("bit_vectors_per_block can't be equal to 0");
+
     this->bit_vectors_per_block = bit_vectors_per_block; 
 }
 
 void ConfigurationLiterate::set_preset_level(std::uint8_t preset_level) 
 { 
-    if(this->preset_level >= 10)
-        throw std::invalid_argument("preset_level can't be equal to 0");
+    if(this->preset_level > 9)
+        throw std::invalid_argument("preset_level can't be greater than 9");
+
     this->preset_level = preset_level; 
 }
 
