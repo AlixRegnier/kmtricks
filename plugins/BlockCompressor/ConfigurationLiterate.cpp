@@ -52,7 +52,7 @@ void ConfigurationLiterate::write() const
     std::ofstream config(filename);
     
     config << "samples = " << nb_samples << "\n";
-    config << "linesperblock = " << lines_per_block << "\n";
+    config << "bitvectorsperblock = " << bit_vectors_per_block << "\n";
     config << "preset = " << preset_level << "\n";
 }
 
@@ -64,17 +64,36 @@ void ConfigurationLiterate::assert_valid_config() const
     if(preset_level > 9)
         throw std::invalid_argument("Preset compression level shall be in [0;9]");
 
-    if(lines_per_block == 0)
-        throw std::invalid_argument("The number of lines per block shall be at least 1.");
+    if(bit_vectors_per_block == 0)
+        throw std::invalid_argument("The number of bit_vectors per block shall be at least 1.");
 }
 
 std::size_t ConfigurationLiterate::get_nb_samples() const { return nb_samples; }
-std::size_t ConfigurationLiterate::get_lines_per_block() const { return lines_per_block; }
+std::size_t ConfigurationLiterate::get_bit_vectors_per_block() const { return bit_vectors_per_block; }
 std::uint8_t ConfigurationLiterate::get_preset_level() const { return preset_level; }
 
-void ConfigurationLiterate::set_nb_samples(std::size_t nb_samples) { assert(this->nb_samples > 0); this->nb_samples = nb_samples; }
-void ConfigurationLiterate::set_lines_per_block(std::size_t lines_per_block) { assert(this->lines_per_block > 0); this->lines_per_block = lines_per_block; }
-void ConfigurationLiterate::set_preset_level(std::uint8_t preset_level) { assert(this->preset_level < 10); this->preset_level = preset_level; }
+void ConfigurationLiterate::set_nb_samples(std::size_t nb_samples) 
+{ 
+    if(this->nb_samples == 0) 
+        throw std::invalid_argument("nb_samples can't be equal to 0");
+
+    this->nb_samples = nb_samples; 
+
+}
+
+void ConfigurationLiterate::set_bit_vectors_per_block(std::size_t bit_vectors_per_block) 
+{
+    if(this->bit_vectors_per_block == 0) 
+        throw std::invalid_argument("bit_vectors_per_block can't be equal to 0");
+    this->bit_vectors_per_block = bit_vectors_per_block; 
+}
+
+void ConfigurationLiterate::set_preset_level(std::uint8_t preset_level) 
+{ 
+    if(this->preset_level >= 10)
+        throw std::invalid_argument("preset_level can't be equal to 0");
+    this->preset_level = preset_level; 
+}
 
 //Modify string 's' in lower case
 std::string& ConfigurationLiterate::to_lower_case(std::string& s)
@@ -91,9 +110,9 @@ void ConfigurationLiterate::set_property(const std::string& property, std::size_
     {
         set_nb_samples(value);
     }
-    else if(property == "linesperblock")
+    else if(property == "bitvectorsperblock")
     {
-        set_lines_per_block(value);
+        set_bit_vectors_per_block(value);
     }
     else if(property == "preset")
     {

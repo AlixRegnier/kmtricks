@@ -95,12 +95,12 @@ void BlockCompressor::add_buffer_to_block()
     for(std::size_t i = 0; i < m_buffer.size(); ++i)
         in_buffer[in_buffer_current_size + i] = m_buffer[i];
 
-    ++lines_read;
+    ++bit_vectors_read;
 
     // Update variables tracking data to use in in_buffer vector
-    in_buffer_current_size = m_buffer.size() * (lines_read % config.get_lines_per_block());
+    in_buffer_current_size = m_buffer.size() * (bit_vectors_read % config.get_bit_vectors_per_block());
 
-    if(lines_read % config.get_lines_per_block() == 0)
+    if(bit_vectors_read % config.get_bit_vectors_per_block() == 0)
     {
         // Compress block
         write_buffer();
@@ -165,7 +165,7 @@ void BlockCompressor::configure(const std::string& config_path)
     filters[0] = { .id = LZMA_FILTER_LZMA1, .options = &opt_lzma }; //Raw encoding with no headers
     filters[1] = { .id = LZMA_VLI_UNKNOWN, .options = NULL }; //Terminal filter
 
-    in_buffer.resize(m_buffer.size() * config.get_lines_per_block());
+    in_buffer.resize(m_buffer.size() * config.get_bit_vectors_per_block());
 
     //Compression is not inplace, so we need to allocate out_buffer once for storing data
     //Get maximum estimated (upper bound) encoded size

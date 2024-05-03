@@ -39,7 +39,7 @@ class BlockCompressor : public km::IMergePlugin
         std::vector<std::uint8_t> in_buffer;
         std::vector<std::uint8_t> out_buffer;
         std::size_t in_buffer_current_size = 0;
-        std::size_t lines_read = 0;
+        std::size_t bit_vectors_read = 0;
         std::ofstream m_out;
 
         //EF data
@@ -67,8 +67,8 @@ class BlockCompressor : public km::IMergePlugin
         ~BlockCompressor();
 
         // 'hash' is the hash value
-        // 'counts' is the abundance vector of the line, not binarized.
-        // Note that you may not see all the lines here, as 'process_hash' is not called on empty lines, i.e. hashes not present in any samples. I don't know how you want to handle this, in the non compressed index, I simply write empty bit vectors.
+        // 'counts' is the abundance vector of the bit_vector, not binarized.
+        // Note that you may not see all the bit_vectors here, as 'process_hash' is not called on empty bit_vectors, i.e. hashes not present in any samples. I don't know how you want to handle this, in the non compressed index, I simply write empty bit vectors.
         bool process_hash(std::uint64_t, std::vector<count_type>&) override;
 
         // 'config_path' is the string passed to --plugin-config, path to the config file

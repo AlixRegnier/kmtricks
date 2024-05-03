@@ -16,17 +16,17 @@ class ConfigurationLiterate
         void write() const;
 
         std::size_t get_nb_samples() const;
-        std::size_t get_lines_per_block() const;
+        std::size_t get_bit_vectors_per_block() const;
         std::uint8_t get_preset_level() const;
 
         void set_nb_samples(std::size_t);
-        void set_lines_per_block(std::size_t);
+        void set_bit_vectors_per_block(std::size_t);
         void set_preset_level(std::uint8_t);
         
     private:
         //Default values are invalid for ensuring the use of a further proper configuration
         std::size_t nb_samples = 0;
-        std::size_t lines_per_block = 0;
+        std::size_t bit_vectors_per_block = 0;
         std::uint8_t preset_level = 10;
         std::string filename;
 

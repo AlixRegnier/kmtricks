@@ -26,8 +26,8 @@ BlockDecompressor::BlockDecompressor(const ConfigurationLiterate& config, const 
     filters[0] = { .id = LZMA_FILTER_LZMA1 , .options = &opt_lzma }; //Raw encoding with no headers
     filters[1] = { .id = LZMA_VLI_UNKNOWN,  .options = NULL }; //Terminal filter
     
-    line_size = ((config.get_nb_samples() + 7) / 8);
-    block_decoded_size = line_size * config.get_lines_per_block();
+    bit_vector_size = ((config.get_nb_samples() + 7) / 8);
+    block_decoded_size = bit_vector_size * config.get_bit_vectors_per_block();
 
     out_buffer.resize(block_decoded_size);
     
@@ -96,9 +96,9 @@ std::size_t BlockDecompressor::decode_block(std::size_t i)
 const std::uint8_t* BlockDecompressor::get_bit_vector_from_hash(std::uint64_t hash)
 {
     //Get block index
-    std::uint64_t block_index = hash / config.get_lines_per_block();
+    std::uint64_t block_index = hash / config.get_bit_vectors_per_block();
     //Get index in block
-    std::uint64_t hash_index = hash % config.get_lines_per_block();
+    std::uint64_t hash_index = hash % config.get_bit_vectors_per_block();
 
     if(block_index + 1 >= ef_pos.size()) //Handle queried hashes that are out of matrix
         return nullptr;
@@ -110,7 +110,7 @@ const std::uint8_t* BlockDecompressor::get_bit_vector_from_hash(std::uint64_t ha
     }
 
     //Return corresponding bit_vector
-    return out_buffer.data() + hash_index * get_line_size();
+    return out_buffer.data() + hash_index * get_bit_vector_size();
 }
 
 void BlockDecompressor::decompress_all(const std::string& out_path)
@@ -127,7 +127,7 @@ void BlockDecompressor::decompress_all(const std::string& out_path)
     }
 }
 
-std::uint64_t BlockDecompressor::get_line_size() const
+std::uint64_t BlockDecompressor::get_bit_vector_size() const
 {
-    return line_size;
+    return bit_vector_size;
 }

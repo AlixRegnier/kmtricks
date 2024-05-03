@@ -21,9 +21,9 @@ class BlockDecompressor
 
         bool read_once = false; //Flag is set as soon as a block has been decoded
         std::size_t decoded_block_index = 0; //Store the last decoded block index
-        std::size_t line_size; //Size of a decoded line (in bytes)
+        std::size_t bit_vector_size; //Size of a decoded bit_vector (in bytes)
         std::uint64_t block_decoded_size; //Expected size of a decoded block (in bytes)
-        ConfigurationLiterate config; //Configuration class { preset_level, lines_per_block, nb_samples }
+        ConfigurationLiterate config; //Configuration class { preset_level, bit_vectors_per_block, nb_samples }
         std::ifstream matrix; //Input file stream of compressed matrix
         std::ifstream ef_in; //Input file stream of serialized Elias-Fano
 
@@ -37,8 +37,7 @@ class BlockDecompressor
         const std::uint8_t* get_bit_vector_from_hash(std::uint64_t);
 
         void decompress_all(const std::string& out_path);
-
-        std::uint64_t get_line_size() const;
+        std::uint64_t get_bit_vector_size() const;
 };
 
 #endif
