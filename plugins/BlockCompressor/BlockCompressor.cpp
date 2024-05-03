@@ -106,7 +106,7 @@ void BlockCompressor::fill_zero_buffers(std::uint64_t n)
 void BlockCompressor::add_buffer_to_block()
 {
     //Fill vector starting from its "current size"
-    std::memcpy(in_buffer.data()+i, m_buffer.data(), m_buffer.size());
+    std::memcpy(in_buffer.data()+in_buffer_current_size, m_buffer.data(), m_buffer.size());
     
     ++bit_vectors_read;
 
