@@ -74,7 +74,7 @@ std::uint8_t ConfigurationLiterate::get_preset_level() const { return preset_lev
 
 void ConfigurationLiterate::set_nb_samples(std::size_t nb_samples) 
 { 
-    if(this->nb_samples == 0) 
+    if(nb_samples == 0) 
         throw std::invalid_argument("nb_samples can't be equal to 0");
 
     this->nb_samples = nb_samples; 
@@ -83,7 +83,7 @@ void ConfigurationLiterate::set_nb_samples(std::size_t nb_samples)
 
 void ConfigurationLiterate::set_bit_vectors_per_block(std::size_t bit_vectors_per_block) 
 {
-    if(this->bit_vectors_per_block == 0) 
+    if(bit_vectors_per_block == 0) 
         throw std::invalid_argument("bit_vectors_per_block can't be equal to 0");
 
     this->bit_vectors_per_block = bit_vectors_per_block; 
@@ -91,7 +91,7 @@ void ConfigurationLiterate::set_bit_vectors_per_block(std::size_t bit_vectors_pe
 
 void ConfigurationLiterate::set_preset_level(std::uint8_t preset_level) 
 { 
-    if(this->preset_level > 9)
+    if(preset_level > 9)
         throw std::invalid_argument("preset_level can't be greater than 9");
 
     this->preset_level = preset_level; 
