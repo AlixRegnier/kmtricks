@@ -67,6 +67,10 @@ BlockCompressor::BlockCompressor()
 
 BlockCompressor::~BlockCompressor()
 {
+    //Take into account last possible empty bit_vectors to be added to blocks
+    fill_zero_buffers(maximum_hash - previous_hash);
+
+    //Write a smaller block if buffer isn't empty
     if(in_buffer_current_size != 0)
         write_buffer();
 
@@ -89,12 +93,21 @@ void BlockCompressor::write_elias_fano()
     std::cout << "Blocks written: " << (ef_size - 1) << std::endl;
 }
 
+void BlockCompressor::fill_zero_buffers(std::uint64_t n)
+{
+    if(n >= 1)
+    {
+        std::fill(m_buffer.begin(), m_buffer.end(), 0);
+        for(std::uint64_t i = 0; i < n; ++i)
+            add_buffer_to_block();
+    }
+}
+
 void BlockCompressor::add_buffer_to_block()
 {
     //Fill vector starting from its "current size"
-    for(std::size_t i = 0; i < m_buffer.size(); ++i)
-        in_buffer[in_buffer_current_size + i] = m_buffer[i];
-
+    std::memcpy(in_buffer.data()+i, m_buffer.data(), m_buffer.size());
+    
     ++bit_vectors_read;
 
     // Update variables tracking data to use in in_buffer vector
@@ -120,12 +133,7 @@ bool BlockCompressor::process_hash(std::uint64_t hash, std::vector<count_type>& 
         std::uint64_t diff = hash - previous_hash - 1;
 
         // Add missing hashes
-        if(diff >= 1)
-        {
-            std::fill(m_buffer.begin(), m_buffer.end(), 0);
-            for(std::uint64_t i = 0; i < diff; ++i)
-                add_buffer_to_block();
-        }
+        fill_zero_buffers(diff);
     }
 
     previous_hash = hash;

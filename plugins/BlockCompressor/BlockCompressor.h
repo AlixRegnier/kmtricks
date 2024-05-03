@@ -16,6 +16,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <cstring>
 
 //Elias-Fano encoding
 //#include <succinct/elias_fano.hpp>
@@ -25,7 +26,6 @@ using count_type = typename km::selectC<DMAX_C>::type;
 class BlockCompressor : public km::IMergePlugin
 {
     private:
-
         //Members to catch missing hashes
         std::uint64_t minimum_hash;
         std::uint64_t maximum_hash;
@@ -58,6 +58,7 @@ class BlockCompressor : public km::IMergePlugin
         //May be used later
         std::uint8_t padding4(std::size_t);
 
+        void fill_zero_buffers(std::uint64_t);
         void write_buffer();
         void write_elias_fano();
         void add_buffer_to_block();
