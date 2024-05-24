@@ -9,9 +9,9 @@
 class ConfigurationLiterate
 {
     public:
-        ConfigurationLiterate(const std::string& = "", bool=true);
+        ConfigurationLiterate(const std::string& filename = "", bool load_file = true);
 
-        void load(const std::string&, bool=true);
+        void load(const std::string& filename, bool read_file = true);
         void read();
         void write() const;
 
@@ -19,9 +19,9 @@ class ConfigurationLiterate
         std::size_t get_bit_vectors_per_block() const;
         std::uint8_t get_preset_level() const;
 
-        void set_nb_samples(std::size_t);
-        void set_bit_vectors_per_block(std::size_t);
-        void set_preset_level(std::uint8_t);
+        void set_nb_samples(std::size_t nb_samples);
+        void set_bit_vectors_per_block(std::size_t bit_vectors_per_block);
+        void set_preset_level(std::uint8_t preset_level);
         
     private:
         //Default values are invalid for ensuring the use of a further proper configuration

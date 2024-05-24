@@ -27,16 +27,17 @@ class BlockDecompressor
         std::ifstream matrix; //Input file stream of compressed matrix
         std::ifstream ef_in; //Input file stream of serialized Elias-Fano
 
-        void assert_lzma_ret(lzma_ret);
-        std::size_t decode_block(std::size_t);
+        static void assert_lzma_ret(lzma_ret code);
+        std::size_t decode_block(std::size_t i);
     public:
-        BlockDecompressor(const std::string&, const std::string&, const std::string&);
+        BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path);
 
-        BlockDecompressor(const ConfigurationLiterate&, const std::string&, const std::string&);
+        BlockDecompressor(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path);
 
-        const std::uint8_t* get_bit_vector_from_hash(std::uint64_t);
+        const std::uint8_t* get_bit_vector_from_hash(std::uint64_t hash);
 
         void decompress_all(const std::string& out_path);
+        void unload();
         std::uint64_t get_bit_vector_size() const;
 };
 

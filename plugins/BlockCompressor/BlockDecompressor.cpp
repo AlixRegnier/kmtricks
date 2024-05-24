@@ -1,6 +1,6 @@
 #include <BlockDecompressor.h>
 
-int main(int argc, char ** argv)
+/*int main(int argc, char ** argv)
 {
     if(argc != 5)
     {
@@ -10,7 +10,7 @@ int main(int argc, char ** argv)
 
     //Initialize decompressor and decompressor each blocks to <output>
     BlockDecompressor(argv[1], argv[2], argv[3]).decompress_all(argv[4]);
-}
+}*/
 
 BlockDecompressor::BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path) : BlockDecompressor(ConfigurationLiterate(config_path), matrix_path, ef_path) {}
 
@@ -59,6 +59,10 @@ void BlockDecompressor::assert_lzma_ret(lzma_ret code)
     }
 }
 
+void BlockDecompressor::unload()
+{
+    read_once = false;
+}
 
 std::size_t BlockDecompressor::decode_block(std::size_t i)
 {
@@ -90,11 +94,17 @@ std::size_t BlockDecompressor::decode_block(std::size_t i)
     if(decoded_size != block_decoded_size && (i + 2 != ef_pos.size()))
         throw std::runtime_error("Decoded block got an unexpected size: " + std::to_string(decoded_size) + " (should have been " + std::to_string(block_decoded_size) + ")");
 
+    decoded_block_index = i;
     return decoded_size;
 }
 
 const std::uint8_t* BlockDecompressor::get_bit_vector_from_hash(std::uint64_t hash)
 {
+    //Need to retrieve <minimum_hash> to calculate from hash range starting from zero
+    //if(hash < minimum_hash)
+    //  throw std::runtime_error("<hash> was less than <minimum_hash>");
+    //hash -= minimum_hash;
+
     //Get block index
     std::uint64_t block_index = hash / config.get_bit_vectors_per_block();
     //Get index in block
@@ -103,7 +113,7 @@ const std::uint8_t* BlockDecompressor::get_bit_vector_from_hash(std::uint64_t ha
     if(block_index + 1 >= ef_pos.size()) //Handle queried hashes that are out of matrix
         return nullptr;
 
-    if(block_index != decoded_block_index) //Avoid decompressing a block that was decompressed on last call
+    if(block_index != decoded_block_index || !read_once) //Avoid decompressing a block that was decompressed on last call
     {
         read_once = true;
         decode_block(block_index);

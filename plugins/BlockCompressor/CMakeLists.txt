@@ -58,9 +58,15 @@ add_dependencies(BlockCompressor xz ConfigurationLiterate)
 target_link_libraries(BlockCompressor PRIVATE build_type_flags headers ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB})
 target_include_directories(BlockCompressor PUBLIC ${XZ_INCLUDES} ${CDIR})
 
-###### BlockDecompressor (executable) #######
-add_executable(BlockDecompressor ${BLOCKDECOMPRESSOR_SOURCES}  ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
+###### mainBlockDecompressor (executable) #######
+add_executable(BlockDecompressor ${CDIR}/mainBlockDecompressor.cpp ${BLOCKDECOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
 add_dependencies(BlockDecompressor xz ConfigurationLiterate)
 target_link_libraries(BlockDecompressor PRIVATE ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB})
 target_include_directories(BlockDecompressor PUBLIC ${XZ_INCLUDES} ${CDIR})
+
+###### benchmark (executable) #######
+add_executable(benchmark ${CDIR}/benchmark.cpp ${BLOCKCOMPRESSOR_SOURCES} ${BLOCKDECOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
+add_dependencies(benchmark xz ConfigurationLiterate)
+target_link_libraries(benchmark PRIVATE ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB})
+target_include_directories(benchmark PUBLIC ${XZ_INCLUDES} ${CDIR})
 
