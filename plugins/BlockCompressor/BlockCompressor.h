@@ -30,7 +30,7 @@ class BlockCompressor : public km::IMergePlugin
         std::uint64_t minimum_hash;
         std::uint64_t maximum_hash;
         std::uint64_t previous_hash;
-
+        
         //Properties
         ConfigurationLiterate config;
 

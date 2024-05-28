@@ -21,14 +21,15 @@ class BlockDecompressor
 
         bool read_once = false; //Flag is set as soon as a block has been decoded
         std::size_t decoded_block_index = 0; //Store the last decoded block index
-        std::size_t bit_vector_size; //Size of a decoded bit_vector (in bytes)
-        std::uint64_t block_decoded_size; //Expected size of a decoded block (in bytes)
+        std::size_t decoded_block_size = 0;
+        std::size_t BLOCK_DECODED_SIZE = 0; //Expected size of a decoded block (in bytes)
+        std::size_t bit_vector_size = 0; //Size of a decoded bit_vector (in bytes)
         ConfigurationLiterate config; //Configuration class { preset_level, bit_vectors_per_block, nb_samples }
         std::ifstream matrix; //Input file stream of compressed matrix
         std::ifstream ef_in; //Input file stream of serialized Elias-Fano
 
         static void assert_lzma_ret(lzma_ret code);
-        std::size_t decode_block(std::size_t i);
+        void decode_block(std::size_t i);
     public:
         BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path);
 

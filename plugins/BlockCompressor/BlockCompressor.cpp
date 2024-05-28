@@ -43,10 +43,13 @@ BlockCompressor::BlockCompressor()
 
 BlockCompressor::~BlockCompressor()
 {
+    std::cout << "a: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
+
     //Check for a possible underflow that would add a huge amount of buffers of zeroes
     if(maximum_hash != previous_hash)
        fill_zero_buffers(maximum_hash - previous_hash - 1); //Take into account last possible empty bit_vectors to be added to blocks
 
+    std::cout << "b: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
     //Write a smaller block if buffer isn't empty
     if(in_buffer_current_size != 0)
         write_buffer();
@@ -54,6 +57,7 @@ BlockCompressor::~BlockCompressor()
     //Elias-Fano encoding
     write_elias_fano();
 
+    std::cout << "c: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
     ef_out.close();
     m_out.close();
 }
@@ -66,8 +70,6 @@ void BlockCompressor::write_elias_fano()
     std::size_t ef_size = ef_pos.size();
     ef_out.write(reinterpret_cast<const char*>(&ef_size), sizeof(std::size_t));
     ef_out.write(reinterpret_cast<const char*>(ef_pos.data()), sizeof(std::uint64_t) * ef_pos.size());
-
-    std::cout << "Blocks written: " << (ef_size - 1) << std::endl;
 }
 
 void BlockCompressor::fill_zero_buffers(std::uint64_t n)
@@ -270,7 +272,6 @@ void BlockCompressor::compress_pa_hash(const std::string& in_path, const std::st
     in_file.seekg(0, std::ifstream::end);
     std::uint64_t size = in_file.tellg() - (long)skip_header;
     in_file.seekg(skip_header, std::ifstream::beg);
-    std::cout << in_file.tellg() << std::endl;
 
     const std::uint64_t BIT_VECTOR_SIZE = b.m_buffer.size();
     const std::uint64_t PA_HASH_LINE_SIZE = (sizeof(std::uint64_t) + BIT_VECTOR_SIZE);
@@ -327,11 +328,14 @@ void BlockCompressor::compress_cmbf(const std::string& in_path, const std::strin
     }
 
     //Write last block
-    //Preset buffer tracking variable
-    b.in_buffer_current_size = size % CMBF_BLOCK_SIZE; //Remaining bit_vectors
+    if(size % CMBF_BLOCK_SIZE == 0)
+    {
+        //Preset buffer tracking variable
+        b.in_buffer_current_size = size % CMBF_BLOCK_SIZE; //Remaining bit_vectors
 
-    in_file.read(reinterpret_cast<char*>(b.in_buffer.data()), b.in_buffer_current_size);
-    b.write_buffer();
+        in_file.read(reinterpret_cast<char*>(b.in_buffer.data()), b.in_buffer_current_size);
+        b.write_buffer();
+    }
 
     //Prevent plugin from writing data on destruction (excepted Elias-Fano)
     b.in_buffer_current_size = 0;
