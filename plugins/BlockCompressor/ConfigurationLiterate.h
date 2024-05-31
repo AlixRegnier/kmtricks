@@ -6,6 +6,9 @@
 #include <iostream>
 #include <string>
 
+// 1.5 GiB (is the maximum dict size for XZ Utils for compression)
+#define MAX_DICT_SIZE 1610612736 
+
 class ConfigurationLiterate
 {
     public:

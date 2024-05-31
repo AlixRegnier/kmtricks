@@ -17,6 +17,7 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
+#include <algorithm>
 
 //Elias-Fano encoding
 //#include <succinct/elias_fano.hpp>

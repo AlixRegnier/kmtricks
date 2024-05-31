@@ -1,5 +1,6 @@
 list(APPEND PLUGIN_SOURCES "BlockCompressor/BlockCompressor.cpp") # May add more items
 list(APPEND PLUGIN_SOURCES "BlockCompressor/benchmark.cpp")
+list(APPEND PLUGIN_SOURCES "BlockCompressor/mainBlockCompressor.cpp")
 
 include("BlockCompressor/CMakeLists.txt")
 

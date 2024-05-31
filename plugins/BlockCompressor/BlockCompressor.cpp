@@ -43,13 +43,13 @@ BlockCompressor::BlockCompressor()
 
 BlockCompressor::~BlockCompressor()
 {
-    std::cout << "a: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
+    //std::cout << "a: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
 
     //Check for a possible underflow that would add a huge amount of buffers of zeroes
     if(maximum_hash != previous_hash)
        fill_zero_buffers(maximum_hash - previous_hash - 1); //Take into account last possible empty bit_vectors to be added to blocks
 
-    std::cout << "b: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
+    //std::cout << "b: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
     //Write a smaller block if buffer isn't empty
     if(in_buffer_current_size != 0)
         write_buffer();
@@ -57,7 +57,7 @@ BlockCompressor::~BlockCompressor()
     //Elias-Fano encoding
     write_elias_fano();
 
-    std::cout << "c: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
+    //std::cout << "c: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
     ef_out.close();
     m_out.close();
 }
@@ -188,6 +188,9 @@ void BlockCompressor::configure(const std::string& config_path)
     if (lzma_lzma_preset(&opt_lzma, config.get_preset_level()))
         throw std::runtime_error("LZMA preset failed");
 
+    std::uint32_t BLOCK_DECODED_SIZE = m_buffer.size() * config.get_bit_vectors_per_block();
+    opt_lzma.dict_size = MAX_DICT_SIZE < BLOCK_DECODED_SIZE ? BLOCK_DECODED_SIZE : MAX_DICT_SIZE;
+
     filters[0] = { .id = LZMA_FILTER_LZMA1, .options = &opt_lzma }; //Raw encoding with no headers
     filters[1] = { .id = LZMA_VLI_UNKNOWN, .options = NULL }; //Terminal filter
 
@@ -205,6 +208,9 @@ void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const s
     minimum_hash = previous_hash = km::HashWindow(hash_info_path).get_lower(partition);
     maximum_hash = km::HashWindow(hash_info_path).get_upper(partition);
 
+    /*std::cout << minimum_hash << std::endl;
+    std::cout << maximum_hash << std::endl;*/
+
     //Configure buffer size according to parameters
     m_buffer.resize((config.get_nb_samples() + 7) / 8);
     std::string part_str = std::to_string(partition);
@@ -218,6 +224,9 @@ void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const s
     //Configure options and filters (compression level) 
     if (lzma_lzma_preset(&opt_lzma, config.get_preset_level()))
         throw std::runtime_error("LZMA preset failed");
+
+    std::uint32_t BLOCK_DECODED_SIZE = m_buffer.size() * config.get_bit_vectors_per_block();
+    opt_lzma.dict_size = MAX_DICT_SIZE < BLOCK_DECODED_SIZE ? BLOCK_DECODED_SIZE : MAX_DICT_SIZE;
 
     filters[0] = { .id = LZMA_FILTER_LZMA1, .options = &opt_lzma }; //Raw encoding with no headers
     filters[1] = { .id = LZMA_VLI_UNKNOWN, .options = NULL }; //Terminal filter
@@ -328,7 +337,7 @@ void BlockCompressor::compress_cmbf(const std::string& in_path, const std::strin
     }
 
     //Write last block
-    if(size % CMBF_BLOCK_SIZE == 0)
+    if(size % CMBF_BLOCK_SIZE != 0)
     {
         //Preset buffer tracking variable
         b.in_buffer_current_size = size % CMBF_BLOCK_SIZE; //Remaining bit_vectors

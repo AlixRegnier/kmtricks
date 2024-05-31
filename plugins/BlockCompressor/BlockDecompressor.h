@@ -6,6 +6,7 @@
 #include <fstream>
 #include <lzma.h>
 #include <vector>
+#include <algorithm>
 
 class BlockDecompressor
 {

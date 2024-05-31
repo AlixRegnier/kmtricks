@@ -1,17 +1,5 @@
 #include <BlockDecompressor.h>
 
-/*int main(int argc, char ** argv)
-{
-    if(argc != 5)
-    {
-        std::cout << "Usage: ./BlockDecompressor <config_file> <matrix> <ef_path> <output>\n\n";
-        exit(2);
-    }
-
-    //Initialize decompressor and decompressor each blocks to <output>
-    BlockDecompressor(argv[1], argv[2], argv[3]).decompress_all(argv[4]);
-}*/
-
 BlockDecompressor::BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path) : BlockDecompressor(ConfigurationLiterate(config_path), matrix_path, ef_path) {}
 
 BlockDecompressor::BlockDecompressor(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path)
@@ -22,12 +10,13 @@ BlockDecompressor::BlockDecompressor(const ConfigurationLiterate& config, const 
     //serialize ef from ef_path
     if (lzma_lzma_preset(&opt_lzma, config.get_preset_level()))
         throw std::runtime_error("LZMA preset failed");
-
-    filters[0] = { .id = LZMA_FILTER_LZMA1 , .options = &opt_lzma }; //Raw encoding with no headers
-    filters[1] = { .id = LZMA_VLI_UNKNOWN,  .options = NULL }; //Terminal filter
     
     bit_vector_size = ((config.get_nb_samples() + 7) / 8);
     BLOCK_DECODED_SIZE = bit_vector_size * config.get_bit_vectors_per_block();
+    opt_lzma.dict_size = MAX_DICT_SIZE < BLOCK_DECODED_SIZE ? BLOCK_DECODED_SIZE : MAX_DICT_SIZE;
+
+    filters[0] = { .id = LZMA_FILTER_LZMA1 , .options = &opt_lzma }; //Raw encoding with no headers
+    filters[1] = { .id = LZMA_VLI_UNKNOWN,  .options = NULL }; //Terminal filter
 
     out_buffer.resize(BLOCK_DECODED_SIZE);
     
@@ -66,10 +55,6 @@ void BlockDecompressor::unload()
 
 void BlockDecompressor::decode_block(std::size_t i)
 {
-    //Next code in comment shoudn't be written because public members ensures that ef_pos[i+1] exists
-    /*if(i + 1 >= ef_pos.size())
-        throw std::runtime_error("Attempted to read a block that doesn't exist (i=" + std::to_string(i) + ")");*/
-
     //Retrieve from EF encoding the location of corresponding block and its size
     std::size_t pos_a = ef_pos[i];
     std::size_t pos_b = ef_pos[i+1]; 
@@ -112,7 +97,7 @@ const std::uint8_t* BlockDecompressor::get_bit_vector_from_hash(std::uint64_t ha
     if(block_index + 1 >= ef_pos.size()) //Handle queried hashes that are out of matrix
         return nullptr;
 
-    if(read_once && hash_index >= decoded_block_size / get_bit_vector_size()) //Handle last matrix out index
+    if(read_once && hash_index >= decoded_block_size / get_bit_vector_size()) //Handle last block out index
         return nullptr;
 
     if(block_index != decoded_block_index || !read_once) //Avoid decompressing a block that was decompressed on last call
