@@ -7,6 +7,7 @@
 #include <lzma.h>
 #include <vector>
 #include <algorithm>
+#include <sdsl/bit_vectors.hpp>
 
 class BlockDecompressor
 {
@@ -17,8 +18,11 @@ class BlockDecompressor
         std::vector<std::uint8_t> in_buffer; //Buffer to store block encoded data
         std::vector<std::uint8_t> out_buffer; //Buffer to store block decoded data
 
+        sdsl::sd_vector<> ef;
+        sdsl::sd_vector<>::select_1_type ef_pos; //Select support for EF
+
         //TODO Add a proper and serializable EF implementation instead of a vector of integers
-        std::vector<std::uint64_t> ef_pos; 
+        std::size_t ef_size;
 
         bool read_once = false; //Flag is set as soon as a block has been decoded
         std::size_t decoded_block_index = 0; //Store the last decoded block index

@@ -22,12 +22,10 @@ BlockDecompressor::BlockDecompressor(const ConfigurationLiterate& config, const 
     
     ef_in.open(ef_path, std::ifstream::binary);
 
-    //Deserialize vector
-    std::size_t ef_pos_size;
-    ef_in.read(reinterpret_cast<char*>(&ef_pos_size), sizeof(std::size_t)); //Retrieve size
-
-    ef_pos.resize(ef_pos_size);
-    ef_in.read(reinterpret_cast<char*>(ef_pos.data()), ef_pos_size * sizeof(std::uint64_t));
+    //Deserialize size + EF
+    ef_in.read(reinterpret_cast<char*>(&ef_size), sizeof(std::size_t)); //Retrieve size
+    ef.load(ef_in);
+    sdsl::util::init_support(ef_pos, &ef);
 }
 
 void BlockDecompressor::assert_lzma_ret(lzma_ret code)
@@ -56,8 +54,8 @@ void BlockDecompressor::unload()
 void BlockDecompressor::decode_block(std::size_t i)
 {
     //Retrieve from EF encoding the location of corresponding block and its size
-    std::size_t pos_a = ef_pos[i];
-    std::size_t pos_b = ef_pos[i+1]; 
+    std::size_t pos_a = ef_pos(i+1);
+    std::size_t pos_b = ef_pos(i+2); 
 
     std::size_t block_encoded_size = pos_b - pos_a;
 
@@ -76,7 +74,7 @@ void BlockDecompressor::decode_block(std::size_t i)
     assert_lzma_ret(code);
 
     //Check if decoded size match expected size (taking into account the possibility of a smaller last block)
-    if(decoded_block_size != BLOCK_DECODED_SIZE && (i + 2 != ef_pos.size()))
+    if(decoded_block_size != BLOCK_DECODED_SIZE && (i + 2 != ef_size))
         throw std::runtime_error("Decoded block got an unexpected size: " + std::to_string(decoded_block_size) + " (should have been " + std::to_string(BLOCK_DECODED_SIZE) + ")");
 
     decoded_block_index = i;
@@ -94,7 +92,7 @@ const std::uint8_t* BlockDecompressor::get_bit_vector_from_hash(std::uint64_t ha
     //Get index in block
     std::uint64_t hash_index = hash % config.get_bit_vectors_per_block();
 
-    if(block_index + 1 >= ef_pos.size()) //Handle queried hashes that are out of matrix
+    if(block_index + 1 >= ef_size) //Handle queried hashes that are out of matrix
         return nullptr;
 
     if(read_once && hash_index >= decoded_block_size / get_bit_vector_size()) //Handle last block out index
@@ -115,8 +113,8 @@ void BlockDecompressor::decompress_all(const std::string& out_path)
     std::ofstream out_file;
     out_file.open(out_path, std::ofstream::binary);
 
-    //i < ef_pos.size() - 1 but as it is unsigned, avoid possible underflows if ef_pos is empty
-    for(std::size_t i = 0; i + 1 < ef_pos.size(); ++i)
+    //i < ef_size - 1 but as it is unsigned, avoid possible underflows if ef_pos is empty
+    for(std::size_t i = 0; i + 1 < ef_size; ++i)
     {
         decode_block(i);
         out_file.write(reinterpret_cast<const char*>(out_buffer.data()), decoded_block_size);

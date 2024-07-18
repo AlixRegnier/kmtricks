@@ -20,7 +20,7 @@
 #include <algorithm>
 
 //Elias-Fano encoding
-//#include <succinct/elias_fano.hpp>
+#include <sdsl/bit_vectors.hpp>
 
 using count_type = typename km::selectC<DMAX_C>::type;
 

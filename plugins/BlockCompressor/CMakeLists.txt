@@ -1,3 +1,9 @@
+##NOTES##
+#SDSL est compilé en tant que librairie STATIC au sein de kmtricks; 
+#donc je ne peux pas l'utiliser pour compiler mon plugin qui est SHARED
+#il faut que je compile un clone de SDSL en SHARED 
+#ou alors modifier dans kmtricks le CMakeList afin qu'il le compile en SHARED
+
 include(ExternalProject)
 
 #BlockCompressor source variables
@@ -16,6 +22,9 @@ set(CONFIGURATIONLITERATE_SOURCES ${CDIR}/ConfigurationLiterate.cpp ${CDIR}/Conf
 set(BLOCKCOMPRESSOR_SOURCES ${CDIR}/BlockCompressor.cpp ${CDIR}/BlockCompressor.h)
 set(BLOCKDECOMPRESSOR_SOURCES ${CDIR}/BlockDecompressor.cpp ${CDIR}/BlockDecompressor.h)
 
+#SDSL
+set(SDSL_LIB ${CMAKE_BINARY_DIR}/thirdparty/SDSL/src/SDSL-build/lib/libsdsl.a)
+set(SDSL_INCLUDES ${CMAKE_BINARY_DIR}/thirdparty/SDSL/src/SDSL-build/include)
 
 ########### XZ Utils ###########
 
@@ -53,26 +62,26 @@ target_include_directories(ConfigurationLiterate PUBLIC "${CDIR}")
 target_link_libraries(ConfigurationLiterate PRIVATE build_type_flags headers)
 
 ####### BlockCompressor (plugin lib) ########
-add_library(BlockCompressor SHARED ${BLOCKCOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
+add_library(BlockCompressor STATIC ${BLOCKCOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
 add_dependencies(BlockCompressor xz ConfigurationLiterate)
-target_link_libraries(BlockCompressor PRIVATE build_type_flags headers ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB})
-target_include_directories(BlockCompressor PUBLIC ${XZ_INCLUDES} ${CDIR})
+target_link_libraries(BlockCompressor PRIVATE build_type_flags headers ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB} ${SDSL_LIB})
+target_include_directories(BlockCompressor PUBLIC ${XZ_INCLUDES} ${CDIR} ${SDSL_INCLUDES})
 
 ###### mainBlockCompressor (executable) #######
 add_executable(mainBlockCompressor ${CDIR}/mainBlockCompressor.cpp ${BLOCKCOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
 add_dependencies(mainBlockCompressor xz ConfigurationLiterate)
-target_link_libraries(mainBlockCompressor PRIVATE ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB})
-target_include_directories(mainBlockCompressor PUBLIC ${XZ_INCLUDES} ${CDIR})
+target_link_libraries(mainBlockCompressor PRIVATE ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB} ${SDSL_LIB})
+target_include_directories(mainBlockCompressor PUBLIC ${XZ_INCLUDES} ${CDIR} ${SDSL_INCLUDES})
 
 ###### mainBlockDecompressor (executable) #######
 add_executable(mainBlockDecompressor ${CDIR}/mainBlockDecompressor.cpp ${BLOCKDECOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
 add_dependencies(mainBlockDecompressor xz ConfigurationLiterate)
-target_link_libraries(mainBlockDecompressor PRIVATE ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB})
-target_include_directories(mainBlockDecompressor PUBLIC ${XZ_INCLUDES} ${CDIR})
+target_link_libraries(mainBlockDecompressor PRIVATE ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB} ${SDSL_LIB}) 
+target_include_directories(mainBlockDecompressor PUBLIC ${XZ_INCLUDES} ${CDIR} ${SDSL_INCLUDES})
 
 ###### benchmark (executable) #######
 add_executable(benchmark ${CDIR}/benchmark.cpp ${BLOCKCOMPRESSOR_SOURCES} ${BLOCKDECOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
 add_dependencies(benchmark xz ConfigurationLiterate)
-target_link_libraries(benchmark PRIVATE ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB})
-target_include_directories(benchmark PUBLIC ${XZ_INCLUDES} ${CDIR})
+target_link_libraries(benchmark PRIVATE ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB} ${SDSL_LIB})
+target_include_directories(benchmark PUBLIC ${XZ_INCLUDES} ${CDIR} ${SDSL_INCLUDES})
 

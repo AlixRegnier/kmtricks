@@ -1,5 +1,4 @@
 #include <BlockCompressor.h>
-
 void BlockCompressor::assert_lzma_ret(lzma_ret code)
 {
     switch(code)
@@ -64,12 +63,12 @@ BlockCompressor::~BlockCompressor()
 
 void BlockCompressor::write_elias_fano()
 {
-    //https://github.com/ot/succinct
-
-    //ef_builder = succint::elias_fano::elias_fano_builder(ef_pos.size(), ef_pos.back());
     std::size_t ef_size = ef_pos.size();
     ef_out.write(reinterpret_cast<const char*>(&ef_size), sizeof(std::size_t));
-    ef_out.write(reinterpret_cast<const char*>(ef_pos.data()), sizeof(std::uint64_t) * ef_pos.size());
+    
+    //Create Elias-Fano representation from positions
+    sdsl::sd_vector<> ef(ef_pos.begin(), ef_pos.end());
+    ef.serialize(ef_out);
 }
 
 void BlockCompressor::fill_zero_buffers(std::uint64_t n)
