@@ -14,6 +14,8 @@ class ConfigurationLiterate
     public:
         ConfigurationLiterate(const std::string& filename = "", bool load_file = true);
 
+        //We may want to write out configuration in already existing file
+        //<read_file> should be set to false in that case to not overwriting current configuration
         void load(const std::string& filename, bool read_file = true);
         void read();
         void write() const;
@@ -33,12 +35,12 @@ class ConfigurationLiterate
         std::uint8_t preset_level = 10;
         std::string filename;
 
-        //Modify string 's' in lower case
-        static std::string& to_lower_case(std::string&);
+        //Modify string <s> in lower case
+        static std::string& to_lower_case(std::string& s);
 
         void assert_valid_config() const;
 
-        void set_property(const std::string&, std::size_t);
+        void set_property(const std::string& property, std::size_t value);
 };
 
 #endif

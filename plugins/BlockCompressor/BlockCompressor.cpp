@@ -1,4 +1,5 @@
 #include <BlockCompressor.h>
+
 void BlockCompressor::assert_lzma_ret(lzma_ret code)
 {
     switch(code)
@@ -17,7 +18,7 @@ void BlockCompressor::assert_lzma_ret(lzma_ret code)
     }
 }
 
-void BlockCompressor::write_buffer()
+void BlockCompressor::write_block()
 {
     std::size_t in_size = in_buffer_current_size ? in_buffer_current_size : in_buffer.size();
     std::size_t out_size = 0;
@@ -40,23 +41,22 @@ BlockCompressor::BlockCompressor()
     ef_pos.push_back(0);
 }
 
+//As kmtricks doesn't tell what is the last pair (hash, bit_vector)
+//Use destructor for writing possible missing bit_vectors and the Elias-Fano representation of block starting locations
 BlockCompressor::~BlockCompressor()
 {
-    //std::cout << "a: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
-
     //Check for a possible underflow that would add a huge amount of buffers of zeroes
     if(maximum_hash != previous_hash)
        fill_zero_buffers(maximum_hash - previous_hash - 1); //Take into account last possible empty bit_vectors to be added to blocks
 
-    //std::cout << "b: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
     //Write a smaller block if buffer isn't empty
     if(in_buffer_current_size != 0)
-        write_buffer();
+        write_block();
 
     //Elias-Fano encoding
     write_elias_fano();
 
-    //std::cout << "c: " << std::to_string(m_partition) << ": " << bit_vectors_read << std::endl;
+    //Close file descriptors
     ef_out.close();
     m_out.close();
 }
@@ -64,6 +64,8 @@ BlockCompressor::~BlockCompressor()
 void BlockCompressor::write_elias_fano()
 {
     std::size_t ef_size = ef_pos.size();
+
+    ef_out.write(reinterpret_cast<const char*>(&minimum_hash), sizeof(std::uint64_t));
     ef_out.write(reinterpret_cast<const char*>(&ef_size), sizeof(std::size_t));
     
     //Create Elias-Fano representation from positions
@@ -97,7 +99,7 @@ void BlockCompressor::add_buffer_to_block(const std::uint8_t * bit_vector)
     if(bit_vectors_read % config.get_bit_vectors_per_block() == 0)
     {
         // Compress block
-        write_buffer();
+        write_block();
     }
 }
 
@@ -188,6 +190,8 @@ void BlockCompressor::configure(const std::string& config_path)
         throw std::runtime_error("LZMA preset failed");
 
     std::uint32_t BLOCK_DECODED_SIZE = m_buffer.size() * config.get_bit_vectors_per_block();
+    
+    //Use perfect-fitting dictionary size or maximum value if too large
     opt_lzma.dict_size = MAX_DICT_SIZE < BLOCK_DECODED_SIZE ? BLOCK_DECODED_SIZE : MAX_DICT_SIZE;
 
     filters[0] = { .id = LZMA_FILTER_LZMA1, .options = &opt_lzma }; //Raw encoding with no headers
@@ -206,9 +210,6 @@ void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const s
 
     minimum_hash = previous_hash = km::HashWindow(hash_info_path).get_lower(partition);
     maximum_hash = km::HashWindow(hash_info_path).get_upper(partition);
-
-    /*std::cout << minimum_hash << std::endl;
-    std::cout << maximum_hash << std::endl;*/
 
     //Configure buffer size according to parameters
     m_buffer.resize((config.get_nb_samples() + 7) / 8);
@@ -237,41 +238,9 @@ void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const s
     out_buffer.resize(lzma_stream_buffer_bound(in_buffer.size()));
 }
 
-int BlockCompressor::get_partition_from_filename(const std::string& filename)
-{
-    int a = -1, b = filename.size();
-    while(b >= 0)
-    {
-        if(filename[b] == '.')
-        {
-            a = b = b - 1;
-            break;
-        }
-
-        --b;
-    }
-
-    while(a >= 0)
-    {
-        if(filename[a] < '0' || filename[a] > '9')
-        {
-            a = a + 1;
-            break;
-        }
-
-        --a;
-    }
-
-    return std::stoi(filename.substr(a, b-a+1));
-}
-
-void BlockCompressor::compress_pa_hash(const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned short skip_header)
+void BlockCompressor::compress_pa_hash(const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
 {
     BlockCompressor b;
-
-    //Parse partition number using input filename '^[0-9]*[0-9]*\..*'
-    
-    int partition = get_partition_from_filename(in_path);
 
     b.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
 
@@ -302,13 +271,9 @@ void BlockCompressor::compress_pa_hash(const std::string& in_path, const std::st
     delete[] bit_vector;
 }
 
-void BlockCompressor::compress_cmbf(const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned short skip_header)
+void BlockCompressor::compress_cmbf(const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
 {
     BlockCompressor b;
-    
-    //Parse partition number using input filename '^[0-9]*[0-9]*\..*'
-    
-    int partition = get_partition_from_filename(in_path);
 
     b.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
 
@@ -332,7 +297,7 @@ void BlockCompressor::compress_cmbf(const std::string& in_path, const std::strin
     for(std::uint64_t i = 0; i < NB_FULL_BLOCKS; ++i)
     {
         in_file.read(reinterpret_cast<char*>(b.in_buffer.data()), CMBF_BLOCK_SIZE);
-        b.write_buffer();
+        b.write_block();
     }
 
     //Write last block
@@ -342,10 +307,10 @@ void BlockCompressor::compress_cmbf(const std::string& in_path, const std::strin
         b.in_buffer_current_size = size % CMBF_BLOCK_SIZE; //Remaining bit_vectors
 
         in_file.read(reinterpret_cast<char*>(b.in_buffer.data()), b.in_buffer_current_size);
-        b.write_buffer();
+        b.write_block();
     }
 
-    //Prevent plugin from writing data on destruction (excepted Elias-Fano)
+    //Prevent instance from writing data on destruction (excepted Elias-Fano)
     b.in_buffer_current_size = 0;
     b.previous_hash = b.maximum_hash;
 }

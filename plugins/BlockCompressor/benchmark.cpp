@@ -36,9 +36,9 @@ bool are_equal_cmbf(std::uint64_t minimum_hash, std::uint64_t maximum_hash, std:
     std::uint8_t * bit_vector1 = new std::uint8_t[bd.get_bit_vector_size()];
     const std::uint8_t * bit_vector2 = nullptr;
     
-    for(std::uint64_t hash = 0; hash < maximum_hash - minimum_hash + 1; ++hash)
+    for(std::uint64_t hash = minimum_hash; hash < maximum_hash + 1; ++hash)
     {
-        query_bit_vector_from_cmbf(in_file, bit_vector1, hash, bd.get_bit_vector_size(), header);
+        query_bit_vector_from_cmbf(in_file, bit_vector1, hash - minimum_hash, bd.get_bit_vector_size(), header);
         bit_vector2 = bd.get_bit_vector_from_hash(hash);
 
         ASSERT(bit_vector2 != nullptr, "Hash couldn't be extracted from compressed matrix");
@@ -50,7 +50,7 @@ bool are_equal_cmbf(std::uint64_t minimum_hash, std::uint64_t maximum_hash, std:
                 return false;
             }
 
-        std::cout << "\r" << ((double)hash/(maximum_hash-minimum_hash+1)*100.0);
+        std::cout << "\r" << ((double)(hash - minimum_hash)/(maximum_hash-minimum_hash+1)*100.0);
     }
 
     std::cout << "\r100.0           \n";
@@ -68,7 +68,7 @@ void measure_random_hash_cmbf(std::uint64_t minimum_hash, std::uint64_t maximum_
     //Uniform random Mersenne-Twister generator (64bit)
     std::random_device rd;
     std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<std::uint64_t> dis(0, maximum_hash - maximum_hash);
+    std::uniform_int_distribution<std::uint64_t> dis(minimum_hash, maximum_hash);
 
     int steps = 5;
 
@@ -84,7 +84,7 @@ void measure_random_hash_cmbf(std::uint64_t minimum_hash, std::uint64_t maximum_
         bd.unload(); //Force decompressor to decode block for the next query
 
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-        query_bit_vector_from_cmbf(in_file, bit_vector, hash, BIT_VECTOR_SIZE, header);
+        query_bit_vector_from_cmbf(in_file, bit_vector, hash-minimum_hash, BIT_VECTOR_SIZE, header);
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         sum1 += std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
@@ -109,7 +109,7 @@ void measure_random_sorted_hash_cmbf(std::uint64_t minimum_hash, std::uint64_t m
     //Uniform random Mersenne-Twister generator (64bit)
     std::random_device rd;
     std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<std::uint64_t> dis(0, maximum_hash - maximum_hash);
+    std::uniform_int_distribution<std::uint64_t> dis(minimum_hash, maximum_hash);
 
     int steps = 10000;
 
@@ -142,10 +142,10 @@ void measure_random_sorted_hash_cmbf(std::uint64_t minimum_hash, std::uint64_t m
     delete[] bit_vector;
 }
 
-void measure_compression_time_cmbf(const std::string& matrix_path, const std::string& config_path, const std::string& hash_info_path, unsigned short header)
+void measure_compression_time_cmbf(const std::string& matrix_path, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short header)
 {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    BlockCompressor::compress_cmbf(matrix_path, "test_compression", config_path, hash_info_path, header);
+    BlockCompressor::compress_cmbf(matrix_path, "test_compression", config_path, hash_info_path, partition, header);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
     std::cout << "Partition compression time: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " s" << std::endl;
@@ -157,15 +157,15 @@ void measure_full_read_time_cmbf(std::uint64_t minimum_hash, std::uint64_t maxim
     std::uint8_t * bit_vector = new std::uint8_t[BIT_VECTOR_SIZE];
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    for(std::uint64_t hash = 0; hash < maximum_hash - minimum_hash + 1; ++hash)
+    for(std::uint64_t hash = minimum_hash; hash < maximum_hash + 1; ++hash)
     {
-        query_bit_vector_from_cmbf(in_file, bit_vector, hash, BIT_VECTOR_SIZE, header);
+        query_bit_vector_from_cmbf(in_file, bit_vector, hash - minimum_hash, BIT_VECTOR_SIZE, header);
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Matrix full read time: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " s" << std::endl;
 
     begin = std::chrono::steady_clock::now();
-    for(std::uint64_t hash = 0; hash < maximum_hash - minimum_hash + 1; ++hash)
+    for(std::uint64_t hash = minimum_hash; hash < maximum_hash + 1; ++hash)
     {
         bd.get_bit_vector_from_hash(hash);
     }
@@ -219,25 +219,6 @@ int main(int argc, char ** argv)
 
     BlockDecompressor bd(config_path, matrix_compressed_path, ef_path);
     
-    /*std::cout << "Minimum hash: " << minimum_hash << "\nMaximum hash: " << maximum_hash << "\nBit vector size: " << bd.get_bit_vector_size() << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(0)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(35657)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(35658)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(maximum_hash-minimum_hash-2)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(maximum_hash-minimum_hash-1)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(maximum_hash-minimum_hash+0)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(maximum_hash-minimum_hash+1)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(maximum_hash-minimum_hash+2)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(maximum_hash-minimum_hash+3)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(maximum_hash-minimum_hash+4)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(maximum_hash-minimum_hash+5)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(maximum_hash-minimum_hash+6)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(maximum_hash-minimum_hash+10)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(bd.get_bit_vector_from_hash(maximum_hash-minimum_hash+35658)) << std::endl;
-    std::cout << std::hex << static_cast<const void*>(nullptr) << std::endl;
-
-    getchar();*/
-
     if(path.extension() == ".pa_hash")
         std::cout << "Not handled yet (need to code dichotomy to search fast same hash value)" << std::endl;
     else if(path.extension() == ".cmbf")
@@ -257,7 +238,7 @@ int main(int argc, char ** argv)
         measure_full_read_time_cmbf(minimum_hash, maximum_hash, matrix, bd, header);
 
         std::cout << "###Compression###" << std::endl;
-        measure_compression_time_cmbf(matrix_path, config_path, hash_info_path, header);
+        measure_compression_time_cmbf(matrix_path, config_path, hash_info_path, partition, header);
 
         std::cout << "###Decompression###" << std::endl;
         measure_decompression_time_cmbf(bd);
