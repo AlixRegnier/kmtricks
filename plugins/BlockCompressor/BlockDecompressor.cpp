@@ -26,7 +26,7 @@ BlockDecompressor::BlockDecompressor(const ConfigurationLiterate& config, const 
     //Deserialize size + EF
     ef_in.open(ef_path, std::ifstream::binary);
     ef_in.read(reinterpret_cast<char*>(&minimum_hash), sizeof(std::uint64_t)); //Retrieve minimum_hash
-    ef_in.read(reinterpret_cast<char*>(&ef_size), sizeof(std::size_t)); //Retrieve size
+    ef_in.read(reinterpret_cast<char*>(&ef_size), sizeof(std::uint64_t)); //Retrieve size
     ef.load(ef_in);
     sdsl::util::init_support(ef_pos, &ef);
 }

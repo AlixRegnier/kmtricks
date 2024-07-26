@@ -35,12 +35,13 @@ class BlockDecompressor
         //EF data
         sdsl::sd_vector<> ef; //Elias-Fano object used to store final blocks starting location
         sdsl::sd_vector<>::select_1_type ef_pos; //Select support for Elias-Fano
-        std::size_t ef_size;
+        std::uint64_t ef_size;
 
         //LZMA options        
         lzma_filter filters[2]; //Filters used by XZ
         lzma_options_lzma opt_lzma; //Options used in XZ filters
 
+        //Check if a LZMA returned code is not a bad code
         static void assert_lzma_ret(lzma_ret code);
 
         //Decode i-th block if not currently loaded in memory
@@ -50,7 +51,8 @@ class BlockDecompressor
 
         BlockDecompressor(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path);
 
-        //Decodes the block containing the corresponding hash value and that return the corresponding bit vector 
+        //Decodes the block containing the corresponding hash value and that return the corresponding bit vector address
+        //Returns nullptr if hash is out of range
         const std::uint8_t* get_bit_vector_from_hash(std::uint64_t hash);
 
         //Retrieve original matrix in a specified file

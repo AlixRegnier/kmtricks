@@ -52,6 +52,7 @@ class BlockCompressor : public km::IMergePlugin
         lzma_options_lzma opt_lzma;
         lzma_filter filters[2];
     
+        //Check if a LZMA returned code is not a bad code
         static void assert_lzma_ret(lzma_ret code);
 
         //Append bit_vector to block buffer
