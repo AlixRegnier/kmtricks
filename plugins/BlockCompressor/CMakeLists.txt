@@ -11,12 +11,12 @@ include(ExternalProject)
 set(CDIR ${CMAKE_CURRENT_SOURCE_DIR}/BlockCompressor)
 
 #XZ source variables
-set(XZ_INCLUDES ${CMAKE_BINARY_DIR}/xz/include)
-set(XZ_LIB ${CMAKE_BINARY_DIR}/xz/lib/liblzma.a)
+set(XZ_INCLUDES ${CMAKE_BINARY_DIR}/plugins/xz/src/xz-build/include)
+set(XZ_LIB ${CMAKE_BINARY_DIR}/plugins/xz/src/xz-build/lib/liblzma.a)
 set(XZ_SOURCES ${XZ_INCLUDES}/lzma.h)
 
 #ConfigurationLiterate source variables
-set(CONFIGURATIONLITERATE_LIB ${CMAKE_BINARY_DIR}/plugins/libConfigurationLiterate.a)
+set(CONFIGURATIONLITERATE_LIB ${CMAKE_BINARY_DIR}/plugins/libConfigurationLiterate.so)
 set(CONFIGURATIONLITERATE_SOURCES ${CDIR}/ConfigurationLiterate.cpp ${CDIR}/ConfigurationLiterate.h)
 
 #Block De/Compressor sources
@@ -30,8 +30,8 @@ set(SDSL_INCLUDES ${CMAKE_BINARY_DIR}/thirdparty/SDSL/src/SDSL-build/include)
 ########### XZ Utils ###########
 
 # Define the XZ Utils repository URL and tag
-set(XZ_REPO_URL "https://git.tukaani.org/xz.git")
-set(XZ_REPO_TAG "v5.4.6")  # Adjust the tag as needed
+set(XZ_REPO_URL "https://github.com/tukaani-project/xz.git")
+set(XZ_REPO_TAG "v5.6.2")  # Adjust the tag as needed
 
 # Add XZ Utils as an external project
 ExternalProject_Add(
@@ -44,7 +44,7 @@ ExternalProject_Add(
     CONFIGURE_COMMAND
     	cd ${CMAKE_BINARY_DIR}/plugins/xz/src/xz &&
         ${CMAKE_BINARY_DIR}/plugins/xz/src/xz/autogen.sh && 
-        ./configure --prefix=${CMAKE_BINARY_DIR}/xz --disable-shared 
+        ./configure --prefix=${CMAKE_BINARY_DIR}/plugins/xz/src/xz-build --disable-shared 
 
     INSTALL_COMMAND 
         #Compile only liblzma
@@ -58,12 +58,12 @@ ExternalProject_Add(
 
 
 ########### ConfigurationLiterate ###########
-add_library(ConfigurationLiterate STATIC ${CONFIGURATIONLITERATE_SOURCES})
+add_library(ConfigurationLiterate SHARED ${CONFIGURATIONLITERATE_SOURCES})
 target_include_directories(ConfigurationLiterate PUBLIC "${CDIR}")
 target_link_libraries(ConfigurationLiterate PRIVATE build_type_flags headers)
 
 ####### BlockCompressor (plugin lib) ########
-add_library(BlockCompressor STATIC ${BLOCKCOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
+add_library(BlockCompressor SHARED ${BLOCKCOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
 add_dependencies(BlockCompressor xz ConfigurationLiterate)
 target_link_libraries(BlockCompressor PRIVATE build_type_flags headers ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB} ${SDSL_LIB})
 target_include_directories(BlockCompressor PUBLIC ${XZ_INCLUDES} ${CDIR} ${SDSL_INCLUDES})
