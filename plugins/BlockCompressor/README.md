@@ -4,7 +4,7 @@
 
 Compilation of the plugin and utility programs is done automatically after kmtricks compilation.
 
-Currently, XZ Utils is pulled from a git repository with CMake. In kmtricks, SDSL is build as a static library (.a) and compilation fail because, as plugin is a shared library, SDSL must be compiled with -fPIC argument. You need to change SDSL CMakeLists.txt to add -fPIC and (maybe -shared).
+Currently, XZ Utils is pulled from a git repository with CMake. In kmtricks, SDSL is built as a static library (.a) and compilation fail because, as plugin is a shared library, SDSL must be compiled with -fPIC argument. You need to change SDSL CMakeLists.txt to add "-fPIC" and (maybe "-shared").
 
 ### Partition
 

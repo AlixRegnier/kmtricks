@@ -1,10 +1,3 @@
-##NOTES##
-#SDSL est compilé en tant que librairie STATIC au sein de kmtricks; 
-#donc je ne peux pas l'utiliser pour compiler mon plugin qui est SHARED
-#il faut que je compile un clone de SDSL que je compile en SHARED 
-#ou alors modifier dans kmtricks le CMakeList afin qu'il le compile avec l'option -fPIC
-#qui permet à une libraire shared de lire certaines instructions d'une libraire statique
-
 include(ExternalProject)
 
 #BlockCompressor source variables
