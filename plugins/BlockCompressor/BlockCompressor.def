@@ -1,0 +1,29 @@
+Bootstrap: docker
+From: debian:latest
+
+%post
+	#kmtricks and BlockCompressor build dependencies
+	apt update
+	apt upgrade -y
+	apt install -y build-essential autoconf automake autopoint gettext po4a doxygen libtool cmake zlib1g-dev python3 git
+	
+	#Clone and build kmtricks (BlockCompressor and BlockDecompressor will also be built)
+	git clone --branch compression --recursive https://github.com/AlixRegnier/kmtricks.git /kmtricks
+	mkdir -p /kmtricks/build
+
+	cd /kmtricks/build
+	cmake .. -DWITH_PLUGIN=ON
+	make
+	cd -
+	
+%environment
+	export PATH=/kmtricks/bin:$PATH
+
+%runscript
+	ulimit -n 500000
+
+%labels
+	Author alix.regnier@inria.fr
+
+%help
+	This is a container used to execute Kmtricks and BlockCompressor/BlockDecompressor
