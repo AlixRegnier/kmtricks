@@ -82,10 +82,12 @@ add_dependencies(deps GATB)
 ExternalProject_Add(SDSL
   PREFIX SDSL
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/thirdparty/sdsl-lite
+  CMAKE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE=ON
   INSTALL_COMMAND ""
   LOG_CONFIGURE ON
   LOG_BUILD ON
 )
+
 target_include_directories(headers SYSTEM INTERFACE ${THIRD_BINDIR}/SDSL/src/SDSL-build/include)
 target_link_directories(links INTERFACE ${THIRD_BINDIR}/SDSL/src/SDSL-build/lib)
 target_link_libraries(links INTERFACE sdsl)
