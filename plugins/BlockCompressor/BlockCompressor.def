@@ -8,9 +8,10 @@ From: debian:latest
 	apt install -y build-essential autoconf automake autopoint gettext po4a doxygen libtool cmake zlib1g-dev python3 git
 	
 	#Clone and build kmtricks (BlockCompressor and BlockDecompressor will also be built)
-	git clone --branch compression --recursive https://github.com/AlixRegnier/kmtricks.git /kmtricks
+	git clone --recursive https://github.com/AlixRegnier/kmtricks.git /kmtricks
 	mkdir -p /kmtricks/build
 
+	#Build kmtricks (it also builds BlockCompressor)
 	cd /kmtricks/build
 	cmake .. -DWITH_PLUGIN=ON
 	make
