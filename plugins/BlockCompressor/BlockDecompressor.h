@@ -26,7 +26,7 @@ class BlockDecompressor
         std::size_t decoded_block_size = 0; //Store the last decoded block size
         std::size_t BLOCK_DECODED_SIZE = 0; //Expected size of a decoded block (in bytes)
         std::size_t bit_vector_size = 0; //Size of a decoded bit_vector (in bytes)
-        std::uint64_t minimum_hash;
+        //std::uint64_t minimum_hash;
         
         //IO variables
         std::ifstream matrix; //Input file stream of compressed matrix

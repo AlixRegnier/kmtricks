@@ -25,7 +25,7 @@ BlockDecompressor::BlockDecompressor(const ConfigurationLiterate& config, const 
     
     //Deserialize size + EF
     ef_in.open(ef_path, std::ifstream::binary);
-    ef_in.read(reinterpret_cast<char*>(&minimum_hash), sizeof(std::uint64_t)); //Retrieve minimum_hash
+    //ef_in.read(reinterpret_cast<char*>(&minimum_hash), sizeof(std::uint64_t)); //Retrieve minimum_hash
     ef_in.read(reinterpret_cast<char*>(&ef_size), sizeof(std::uint64_t)); //Retrieve size
     ef.load(ef_in);
     sdsl::util::init_support(ef_pos, &ef);
@@ -80,11 +80,11 @@ void BlockDecompressor::decode_block(std::size_t i)
 const std::uint8_t* BlockDecompressor::get_bit_vector_from_hash(std::uint64_t hash)
 {
     //Handle out of range query
-    if(hash < minimum_hash)
-        return nullptr;
+    /*if(hash < minimum_hash)
+        return nullptr;*/
     
     //Need to substract <minimum_hash> to calculate index from hash range starting from zero
-    hash -= minimum_hash;
+    //hash -= minimum_hash;
 
     //Get block index
     std::uint64_t block_index = hash / config.get_bit_vectors_per_block();

@@ -65,7 +65,7 @@ void BlockCompressor::write_elias_fano()
 {
     std::uint64_t ef_size = ef_pos.size();
 
-    ef_out.write(reinterpret_cast<const char*>(&minimum_hash), sizeof(std::uint64_t));
+    //ef_out.write(reinterpret_cast<const char*>(&minimum_hash), sizeof(std::uint64_t));
     ef_out.write(reinterpret_cast<const char*>(&ef_size), sizeof(std::uint64_t));
     
     //Create Elias-Fano representation from positions
