@@ -180,7 +180,7 @@ void BlockCompressor::configure(const std::string& config_path)
     std::string part_str = std::to_string(this->m_partition);
 
     std::string output_path = this->m_output_directory + "/../matrices/matrix_" + part_str;
-    std::string ef_path = this->m_output_directory + "/../matrices/ef_" + part_str;
+    std::string ef_path = this->m_output_directory + "/../matrices/matrix_" + part_str + "_ef";
 
     m_out.open(output_path, std::ofstream::binary);
     ef_out.open(ef_path, std::ofstream::binary);
@@ -216,7 +216,7 @@ void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const s
     std::string part_str = std::to_string(partition);
 
     std::string output_path = out_prefix + part_str;
-    std::string ef_path = out_prefix + "_ef_" + part_str;
+    std::string ef_path = out_prefix + part_str + "_ef";
 
     m_out.open(output_path, std::ofstream::binary);
     ef_out.open(ef_path, std::ofstream::binary);
