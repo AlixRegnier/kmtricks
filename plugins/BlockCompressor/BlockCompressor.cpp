@@ -190,11 +190,9 @@ void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const s
     init_compressor();
 }
 
-void BlockCompressor::compress_pa_hash(const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
+void BlockCompressor::compress_pa_hash(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
 {
-    BlockCompressor b;
-
-    b.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
+    bc.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
 
     std::ifstream in_file(in_path, std::ifstream::binary);
 
@@ -202,7 +200,7 @@ void BlockCompressor::compress_pa_hash(const std::string& in_path, const std::st
     std::uint64_t size = in_file.tellg() - (long)skip_header;
     in_file.seekg(skip_header, std::ifstream::beg);
 
-    const std::uint64_t BIT_VECTOR_SIZE = b.m_buffer.size();
+    const std::uint64_t BIT_VECTOR_SIZE = bc.m_buffer.size();
     const std::uint64_t PA_HASH_LINE_SIZE = (sizeof(std::uint64_t) + BIT_VECTOR_SIZE);
 
     if(size % PA_HASH_LINE_SIZE != 0)
@@ -217,17 +215,15 @@ void BlockCompressor::compress_pa_hash(const std::string& in_path, const std::st
     {
         in_file.read(reinterpret_cast<char*>(&hash), sizeof(std::uint64_t));
         in_file.read(reinterpret_cast<char*>(bit_vector), BIT_VECTOR_SIZE);
-        b.process_binarized_bit_vector(hash, bit_vector);
+        bc.process_binarized_bit_vector(hash, bit_vector);
     }
     
     delete[] bit_vector;
 }
 
-void BlockCompressor::compress_cmbf(const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
+void BlockCompressor::compress_cmbf(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
 {
-    BlockCompressor b;
-
-    b.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
+    bc.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
 
     std::ifstream in_file(in_path, std::ifstream::binary);
     
@@ -235,8 +231,8 @@ void BlockCompressor::compress_cmbf(const std::string& in_path, const std::strin
     std::uint64_t size = in_file.tellg() - (long)skip_header;
     in_file.seekg(skip_header, std::ifstream::beg);
 
-    const std::uint64_t CMBF_LINE_SIZE = b.m_buffer.size();
-    const std::uint64_t CMBF_BLOCK_SIZE = b.in_buffer.size();
+    const std::uint64_t CMBF_LINE_SIZE = bc.m_buffer.size();
+    const std::uint64_t CMBF_BLOCK_SIZE = bc.in_buffer.size();
 
     if(size % CMBF_LINE_SIZE != 0)
         throw std::runtime_error("File size doesn't match [<bit_vector>], check the header size");
@@ -244,27 +240,27 @@ void BlockCompressor::compress_cmbf(const std::string& in_path, const std::strin
     //Write full blocks
     const std::uint64_t NB_FULL_BLOCKS = size / CMBF_BLOCK_SIZE;
 
-    b.in_buffer_current_size = 0;
+    bc.in_buffer_current_size = 0;
 
     for(std::uint64_t i = 0; i < NB_FULL_BLOCKS; ++i)
     {
-        in_file.read(reinterpret_cast<char*>(b.in_buffer.data()), CMBF_BLOCK_SIZE);
-        b.write_block();
+        in_file.read(reinterpret_cast<char*>(bc.in_buffer.data()), CMBF_BLOCK_SIZE);
+        bc.write_block();
     }
 
     //Write last block
     if(size % CMBF_BLOCK_SIZE != 0)
     {
         //Preset buffer tracking variable
-        b.in_buffer_current_size = size % CMBF_BLOCK_SIZE; //Remaining bit_vectors
+        bc.in_buffer_current_size = size % CMBF_BLOCK_SIZE; //Remaining bit_vectors
 
-        in_file.read(reinterpret_cast<char*>(b.in_buffer.data()), b.in_buffer_current_size);
-        b.write_block();
+        in_file.read(reinterpret_cast<char*>(bc.in_buffer.data()), bc.in_buffer_current_size);
+        bc.write_block();
     }
 
     //Prevent instance from writing data on destruction (excepted Elias-Fano)
-    b.in_buffer_current_size = 0;
-    b.previous_hash = b.maximum_hash;
+    bc.in_buffer_current_size = 0;
+    bc.previous_hash = bc.maximum_hash;
 }
 
 

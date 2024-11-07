@@ -1,5 +1,5 @@
-#ifndef BLOCKCOMPRESSOR_H
-#define BLOCKCOMPRESSOR_H
+#ifndef BLOCKCOMPRESSORLZMA_H
+#define BLOCKCOMPRESSORLZMA_H
 
 #include <BlockCompressor.h>
 
@@ -17,7 +17,7 @@ class BlockCompressorLZMA : public BlockCompressor
         static void assert_lzma_ret(lzma_ret code);
 
         //Write out current block
-        std::size_t compress_buffer() override;
+        std::size_t compress_buffer(std::size_t in_size) override;
 
         void init_compressor() override;
         

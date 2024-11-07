@@ -17,7 +17,7 @@ class BlockDecompressorLZMA : public BlockDecompressor
         //Check if a LZMA returned code is not a bad code
         static void assert_lzma_ret(lzma_ret code);
 
-        void decompress_buffer() override;
+        void decompress_buffer(std::size_t in_size) override;
     public:
         BlockDecompressorLZMA(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path);
 

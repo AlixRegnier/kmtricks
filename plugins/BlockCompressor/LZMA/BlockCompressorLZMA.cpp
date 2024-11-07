@@ -18,7 +18,7 @@ void BlockCompressorLZMA::assert_lzma_ret(lzma_ret code)
     }
 }
 
-std::size_t BlockCompressorLZMA::compress_buffer(std::size_t in_size) override
+std::size_t BlockCompressorLZMA::compress_buffer(std::size_t in_size)
 {
     std::size_t out_size = 0;
 
@@ -30,7 +30,7 @@ std::size_t BlockCompressorLZMA::compress_buffer(std::size_t in_size) override
 }
 
 //Init LZMA filters and resize output buffer according to estimated compressed block size
-void BlockCompressorLZMA::init_compressor() override
+void BlockCompressorLZMA::init_compressor()
 {
     //Configure options and filters (compression level) 
     if (lzma_lzma_preset(&opt_lzma, config.get_preset_level()))
@@ -52,5 +52,5 @@ void BlockCompressorLZMA::init_compressor() override
 
 extern "C" std::string plugin_name() { return "BlockCompressorLZMA"; }
 extern "C" int use_template() { return 0; }
-extern "C" km::IMergePlugin* create0() { return new BlockCompressor(); }
+extern "C" km::IMergePlugin* create0() { return new BlockCompressorLZMA(); }
 extern "C" void destroy(km::IMergePlugin* p) { delete p; }

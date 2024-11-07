@@ -1,81 +1,113 @@
+cmake_minimum_required(VERSION 3.14)
+project(BlockCompressor)
+
+# Set C++17 standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 include(ExternalProject)
 
-#BlockCompressor source variables
-set(CDIR ${CMAKE_CURRENT_SOURCE_DIR}/BlockCompressor)
 
-#XZ source variables
-set(XZ_INCLUDES ${CMAKE_BINARY_DIR}/plugins/xz/src/xz-build/include)
-set(XZ_LIB ${CMAKE_BINARY_DIR}/plugins/xz/src/xz-build/lib/liblzma.a)
-set(XZ_SOURCES ${XZ_INCLUDES}/lzma.h)
+# Add the include directories
+include_directories(
+    ${PROJECT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/LZMA
+    ${PROJECT_BINARY_DIR}/xz-utils/include
+    ${PROJECT_BINARY_DIR}/sdsl/include
+)
 
-#ConfigurationLiterate source variables
-set(CONFIGURATIONLITERATE_LIB ${CMAKE_BINARY_DIR}/plugins/libConfigurationLiterate.so)
-set(CONFIGURATIONLITERATE_SOURCES ${CDIR}/ConfigurationLiterate.cpp ${CDIR}/ConfigurationLiterate.h)
+# Download and build XZ Utils as an External Project
+include(ExternalProject)
+ExternalProject_Add(xz-utils
 
-#Block De/Compressor sources
-set(BLOCKCOMPRESSOR_SOURCES ${CDIR}/BlockCompressor.cpp ${CDIR}/BlockCompressor.h)
-set(BLOCKDECOMPRESSOR_SOURCES ${CDIR}/BlockDecompressor.cpp ${CDIR}/BlockDecompressor.h)
+    GIT_REPOSITORY https://github.com/tukaani-project/xz.git
+    GIT_TAG v5.6.2
 
-#SDSL
-set(SDSL_LIB ${CMAKE_BINARY_DIR}/thirdparty/SDSL/src/SDSL-build/lib/libsdsl.a)
-set(SDSL_INCLUDES ${CMAKE_BINARY_DIR}/thirdparty/SDSL/src/SDSL-build/include)
-
-########### XZ Utils ###########
-
-# Define the XZ Utils repository URL and tag
-set(XZ_REPO_URL "https://github.com/tukaani-project/xz.git")
-set(XZ_REPO_TAG "v5.6.2")  # Adjust the tag as needed
-
-# Add XZ Utils as an external project
-ExternalProject_Add(
-    xz
-    PREFIX xz
-    GIT_REPOSITORY ${XZ_REPO_URL}
-    GIT_TAG ${XZ_REPO_TAG}
-    UPDATE_COMMAND ""
-	
     CONFIGURE_COMMAND
-    	cd ${CMAKE_BINARY_DIR}/plugins/xz/src/xz &&
-        ${CMAKE_BINARY_DIR}/plugins/xz/src/xz/autogen.sh && 
-        ./configure --prefix=${CMAKE_BINARY_DIR}/plugins/xz/src/xz-build --disable-shared 
+        cd ${PROJECT_BINARY_DIR}/xz-utils-prefix/src/xz-utils/ &&
+        ${PROJECT_BINARY_DIR}/xz-utils-prefix/src/xz-utils/autogen.sh && 
+        ${PROJECT_BINARY_DIR}/xz-utils-prefix/src/xz-utils/configure --prefix=${PROJECT_BINARY_DIR}/xz-utils --disable-shared 
 
     INSTALL_COMMAND 
         #Compile only liblzma
-        make -C ${CMAKE_BINARY_DIR}/plugins/xz/src/xz/src/liblzma install &&
+        make -C ${PROJECT_BINARY_DIR}/xz-utils-prefix/src/xz-utils/src/liblzma install &&
         cd -
         
     BUILD_COMMAND ""
     
-    BUILD_BYPRODUCTS ${XZ_LIB} ${XZ_SOURCES}
+    #BUILD_BYPRODUCTS ${XZ_LIB} ${XZ_SOURCES}
+)
+
+# Download and build SDSL as an External Project
+ExternalProject_Add(sdsl
+    GIT_REPOSITORY https://github.com/simongog/sdsl-lite.git
+    GIT_TAG v2.1.1
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/sdsl -DBUILD_SHARED_LIBS=ON
 )
 
 
-########### ConfigurationLiterate ###########
-add_library(ConfigurationLiterate SHARED ${CONFIGURATIONLITERATE_SOURCES})
-target_include_directories(ConfigurationLiterate PUBLIC "${CDIR}")
-target_link_libraries(ConfigurationLiterate PRIVATE build_type_flags headers)
+# Build the ConfigurationLiterate library
+add_library(ConfigurationLiterate SHARED
+    ConfigurationLiterate.cpp
+    ConfigurationLiterate.h
+)
 
-####### BlockCompressor (plugin lib) ########
-add_library(BlockCompressor SHARED ${BLOCKCOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
-add_dependencies(BlockCompressor xz ConfigurationLiterate)
-target_link_libraries(BlockCompressor PRIVATE build_type_flags headers ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB} ${SDSL_LIB})
-target_include_directories(BlockCompressor PUBLIC ${XZ_INCLUDES} ${CDIR} ${SDSL_INCLUDES})
+# Build the BlockCompressor library
+add_library(BlockCompressor SHARED
+    BlockCompressor.cpp
+    BlockCompressor.h
+)
+target_link_libraries(BlockCompressor PRIVATE ConfigurationLiterate ${PROJECT_BINARY_DIR}/sdsl/lib/libsdsl.so)
+add_dependencies(BlockCompressor sdsl)
 
-###### mainBlockCompressor (executable) #######
-add_executable(mainBlockCompressor ${CDIR}/mainBlockCompressor.cpp ${BLOCKCOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
-add_dependencies(mainBlockCompressor xz ConfigurationLiterate)
-target_link_libraries(mainBlockCompressor PRIVATE ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB} ${SDSL_LIB})
-target_include_directories(mainBlockCompressor PUBLIC ${XZ_INCLUDES} ${CDIR} ${SDSL_INCLUDES})
+# Build the BlockDecompressor library 
+add_library(BlockDecompressor STATIC
+    BlockDecompressor.cpp
+    BlockDecompressor.h
+)
+target_link_libraries(BlockDecompressor PRIVATE ConfigurationLiterate ${PROJECT_BINARY_DIR}/sdsl/lib/libsdsl.so)
+add_dependencies(BlockDecompressor sdsl)
 
-###### mainBlockDecompressor (executable) #######
-add_executable(mainBlockDecompressor ${CDIR}/mainBlockDecompressor.cpp ${BLOCKDECOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
-add_dependencies(mainBlockDecompressor xz ConfigurationLiterate)
-target_link_libraries(mainBlockDecompressor PRIVATE ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB} ${SDSL_LIB}) 
-target_include_directories(mainBlockDecompressor PUBLIC ${XZ_INCLUDES} ${CDIR} ${SDSL_INCLUDES})
+# Build the BlockCompressorLZMA library
+add_library(BlockCompressorLZMA SHARED
+    LZMA/BlockCompressorLZMA.cpp
+    LZMA/BlockCompressorLZMA.h
+)
+add_dependencies(BlockCompressorLZMA xz-utils)
+target_link_libraries(BlockCompressorLZMA PUBLIC BlockCompressor ${PROJECT_BINARY_DIR}/xz-utils/lib/liblzma.a ${PROJECT_BINARY_DIR}/sdsl/lib/libsdsl.so)
 
-###### benchmark (executable) #######
-add_executable(benchmark ${CDIR}/benchmark.cpp ${BLOCKCOMPRESSOR_SOURCES} ${BLOCKDECOMPRESSOR_SOURCES} ${CONFIGURATIONLITERATE_SOURCES} ${XZ_SOURCES})
-add_dependencies(benchmark xz ConfigurationLiterate)
-target_link_libraries(benchmark PRIVATE ${XZ_LIB} ${CONFIGURATIONLITERATE_LIB} ${SDSL_LIB})
-target_include_directories(benchmark PUBLIC ${XZ_INCLUDES} ${CDIR} ${SDSL_INCLUDES})
+# Build the BlockDecompressorLZMA library
+add_library(BlockDecompressorLZMA STATIC
+    LZMA/BlockDecompressorLZMA.cpp
+    LZMA/BlockDecompressorLZMA.h
+)
+add_dependencies(BlockDecompressorLZMA xz-utils)
+target_link_libraries(BlockDecompressorLZMA PUBLIC BlockDecompressor ${PROJECT_BINARY_DIR}/xz-utils/lib/liblzma.a ${PROJECT_BINARY_DIR}/sdsl/lib/libsdsl.so)
 
+# Build the mainBlockCompressorLZMA executable
+add_executable(mainBlockCompressorLZMA
+    LZMA/mainBlockCompressorLZMA.cpp
+)
+target_link_libraries(mainBlockCompressorLZMA PUBLIC BlockCompressorLZMA)
+
+# Build the mainBlockDecompressorLZMA executable
+add_executable(mainBlockDecompressorLZMA
+    LZMA/mainBlockDecompressorLZMA.cpp
+)
+target_link_libraries(mainBlockDecompressorLZMA PUBLIC BlockDecompressorLZMA)
+
+# Build benchmarks
+add_executable(benchmark
+    benchmark.cpp
+)
+target_link_libraries(benchmark PUBLIC BlockCompressorLZMA BlockDecompressorLZMA)
+
+
+
+list(APPEND BLOCK_COMPRESSOR_DEP_KMTRICKS BlockCompressor BlockDecompressor BlockCompressorLZMA BlockDecompressorLZMA mainBlockCompressorLZMA mainBlockDecompressorLZMA benchmark)
+
+foreach(BC_DEP ${BLOCK_COMPRESSOR_DEP_KMTRICKS})
+  target_link_libraries(${BC_DEP} PRIVATE build_type_flags headers)
+  target_compile_definitions(${BC_DEP} PRIVATE DMAX_C=${MAX_C})
+  add_dependencies(plugins ${BC_DEP})
+endforeach()

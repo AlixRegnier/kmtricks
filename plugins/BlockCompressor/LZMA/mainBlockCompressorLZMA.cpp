@@ -2,7 +2,7 @@
 #include <chrono>
 #include <string>
 
-#include <BlockCompressor.h>
+#include <BlockCompressorLZMA.h>
 
 int main(int argc, char ** argv)
 {
@@ -18,6 +18,7 @@ int main(int argc, char ** argv)
     unsigned partition = (unsigned)std::stoi(argv[4]);
     std::string prefix = argv[5];
     unsigned short header_size = (unsigned short)std::stoi(argv[6]);
-    
-    BlockCompressor::compress_cmbf(in_path, prefix, config_path, hash_info_path, partition, header_size);
+
+    BlockCompressorLZMA bc;    
+    BlockCompressorLZMA::compress_cmbf(bc, in_path, prefix, config_path, hash_info_path, partition, header_size);
 }
