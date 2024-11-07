@@ -7,19 +7,9 @@ BlockDecompressor::BlockDecompressor(const ConfigurationLiterate& config, const 
     this->config = ConfigurationLiterate(config);
     matrix.open(matrix_path, std::ifstream::binary);
 
-    //Set LZMA settings
-    if (lzma_lzma_preset(&opt_lzma, config.get_preset_level()))
-        throw std::runtime_error("LZMA preset failed");
-    
     //Initialize variables according to configurations
     bit_vector_size = ((config.get_nb_samples() + 7) / 8);
     BLOCK_DECODED_SIZE = bit_vector_size * config.get_bit_vectors_per_block();
-    
-    //Use perfect-fitting dictionary size or maximum value if too large
-    opt_lzma.dict_size = MAX_DICT_SIZE < BLOCK_DECODED_SIZE ? BLOCK_DECODED_SIZE : MAX_DICT_SIZE;
-
-    filters[0] = { .id = LZMA_FILTER_LZMA1 , .options = &opt_lzma }; //Raw encoding with no headers
-    filters[1] = { .id = LZMA_VLI_UNKNOWN,  .options = NULL }; //Terminal filter
 
     out_buffer.resize(BLOCK_DECODED_SIZE);
     
@@ -31,23 +21,6 @@ BlockDecompressor::BlockDecompressor(const ConfigurationLiterate& config, const 
     sdsl::util::init_support(ef_pos, &ef);
 }
 
-void BlockDecompressor::assert_lzma_ret(lzma_ret code)
-{
-    switch(code)
-    {
-        case LZMA_OK:
-        case LZMA_STREAM_END:
-            return;
-        case LZMA_PROG_ERROR:
-            throw std::runtime_error("LZMA: Some parameters may be invalid");
-        case LZMA_BUF_ERROR:
-            throw std::runtime_error("LZMA: Not enough memory space allocated for buffer");
-        case LZMA_MEM_ERROR:
-            throw std::runtime_error("LZMA: Not enough memory space on machine");
-        default:
-            throw std::runtime_error("LZMA: Return code not handled");
-    }
-}
 
 void BlockDecompressor::decode_block(std::size_t i)
 {
@@ -64,12 +37,8 @@ void BlockDecompressor::decode_block(std::size_t i)
     matrix.seekg(pos_a); //Seek block location
     matrix.read(reinterpret_cast<char*>(in_buffer.data()), block_encoded_size); //Read block
 
-    std::size_t zero = 0;
-    decoded_block_size = 0;
-
-    lzma_ret code = lzma_raw_buffer_decode(filters, NULL, in_buffer.data(), &zero, block_encoded_size, out_buffer.data(), &decoded_block_size, BLOCK_DECODED_SIZE);
-    assert_lzma_ret(code);
-
+    decompress_buffer();
+    
     //Check if decoded size match expected size (taking into account the possibility of a smaller last block)
     if(decoded_block_size != BLOCK_DECODED_SIZE && (i + 2 != ef_size))
         throw std::runtime_error("Decoded block got an unexpected size: " + std::to_string(decoded_block_size) + " (should have been " + std::to_string(BLOCK_DECODED_SIZE) + ")");
