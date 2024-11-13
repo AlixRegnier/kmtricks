@@ -4,7 +4,6 @@
 #include <cassert>
 #include <ConfigurationLiterate.h>
 #include <fstream>
-#include <lzma.h>
 #include <vector>
 #include <algorithm>
 #include <sdsl/bit_vectors.hpp>
@@ -13,7 +12,7 @@
 //Instances are used for querying matrix lines or as decompressor 
 class BlockDecompressor
 {
-    private:
+    protected:
         //Properties
         ConfigurationLiterate config; //Configuration class { preset_level, bit_vectors_per_block, nb_samples }
 
@@ -37,15 +36,11 @@ class BlockDecompressor
         sdsl::sd_vector<>::select_1_type ef_pos; //Select support for Elias-Fano
         std::uint64_t ef_size;
 
-        //LZMA options        
-        lzma_filter filters[2]; //Filters used by XZ
-        lzma_options_lzma opt_lzma; //Options used in XZ filters
-
-        //Check if a LZMA returned code is not a bad code
-        static void assert_lzma_ret(lzma_ret code);
-
         //Decode i-th block if not currently loaded in memory
         void decode_block(std::size_t i);
+
+        //Decompress "in_buffer" --> "out_buffer", must return the number of written bytes in out_buffer
+        virtual std::size_t decompress_buffer(std::size_t in_size) = 0;
     public:
         BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path);
 

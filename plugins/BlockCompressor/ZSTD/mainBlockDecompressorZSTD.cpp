@@ -1,4 +1,4 @@
-#include <BlockDecompressor.h>
+#include <BlockDecompressorZSTD.h>
 
 int main(int argc, char ** argv)
 {
@@ -9,5 +9,5 @@ int main(int argc, char ** argv)
     }
 
     //Initialize decompressor and decompressor each blocks to <output>
-    BlockDecompressor(argv[1], argv[2], argv[3]).decompress_all(argv[4]);
+    BlockDecompressorZSTD(argv[1], argv[2], argv[3]).decompress_all(argv[4]);
 }

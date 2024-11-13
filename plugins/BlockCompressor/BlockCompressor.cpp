@@ -1,31 +1,9 @@
 #include <BlockCompressor.h>
 
-void BlockCompressor::assert_lzma_ret(lzma_ret code)
-{
-    switch(code)
-    {
-        case LZMA_OK:
-        case LZMA_STREAM_END:
-            return;
-        case LZMA_PROG_ERROR:
-            throw std::runtime_error("LZMA: Some parameters may be invalid");
-        case LZMA_BUF_ERROR:
-            throw std::runtime_error("LZMA: Not enough memory space allocated for buffer");
-        case LZMA_MEM_ERROR:
-            throw std::runtime_error("LZMA: Not enough memory space on machine");
-        default:
-            throw std::runtime_error("LZMA: Return code not handled");
-    }
-}
-
 void BlockCompressor::write_block()
 {
     std::size_t in_size = in_buffer_current_size ? in_buffer_current_size : in_buffer.size();
-    std::size_t out_size = 0;
-
-    //Let default allocator by passing NULL (malloc/free)
-    lzma_ret code = lzma_raw_buffer_encode(filters, NULL, in_buffer.data(), in_size, out_buffer.data(), &out_size, out_buffer.size());
-    assert_lzma_ret(code);
+    std::size_t out_size = compress_buffer(in_size);
 
     //Add position to Elias-Fano encoder
     current_size += out_size;
@@ -185,23 +163,9 @@ void BlockCompressor::configure(const std::string& config_path)
     m_out.open(output_path, std::ofstream::binary);
     ef_out.open(ef_path, std::ofstream::binary);
 
-    //Configure options and filters (compression level) 
-    if (lzma_lzma_preset(&opt_lzma, config.get_preset_level()))
-        throw std::runtime_error("LZMA preset failed");
-
-    std::uint32_t BLOCK_DECODED_SIZE = m_buffer.size() * config.get_bit_vectors_per_block();
-    
-    //Use perfect-fitting dictionary size or maximum value if too large
-    opt_lzma.dict_size = MAX_DICT_SIZE < BLOCK_DECODED_SIZE ? BLOCK_DECODED_SIZE : MAX_DICT_SIZE;
-
-    filters[0] = { .id = LZMA_FILTER_LZMA1, .options = &opt_lzma }; //Raw encoding with no headers
-    filters[1] = { .id = LZMA_VLI_UNKNOWN, .options = NULL }; //Terminal filter
-
     in_buffer.resize(m_buffer.size() * config.get_bit_vectors_per_block());
 
-    //Compression is not inplace, so we need to allocate out_buffer once for storing data
-    //Get maximum estimated (upper bound) encoded size
-    out_buffer.resize(lzma_stream_buffer_bound(in_buffer.size()));
+    init_compressor();
 }
 
 void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition)
@@ -221,28 +185,14 @@ void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const s
     m_out.open(output_path, std::ofstream::binary);
     ef_out.open(ef_path, std::ofstream::binary);
 
-    //Configure options and filters (compression level) 
-    if (lzma_lzma_preset(&opt_lzma, config.get_preset_level()))
-        throw std::runtime_error("LZMA preset failed");
-
-    std::uint32_t BLOCK_DECODED_SIZE = m_buffer.size() * config.get_bit_vectors_per_block();
-    opt_lzma.dict_size = MAX_DICT_SIZE < BLOCK_DECODED_SIZE ? BLOCK_DECODED_SIZE : MAX_DICT_SIZE;
-
-    filters[0] = { .id = LZMA_FILTER_LZMA1, .options = &opt_lzma }; //Raw encoding with no headers
-    filters[1] = { .id = LZMA_VLI_UNKNOWN, .options = NULL }; //Terminal filter
-
     in_buffer.resize(m_buffer.size() * config.get_bit_vectors_per_block());
 
-    //Compression is not inplace, so we need to allocate out_buffer once for storing data
-    //Get maximum estimated (upper bound) encoded size
-    out_buffer.resize(lzma_stream_buffer_bound(in_buffer.size()));
+    init_compressor();
 }
 
-void BlockCompressor::compress_pa_hash(const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
+void BlockCompressor::compress_pa_hash(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
 {
-    BlockCompressor b;
-
-    b.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
+    bc.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
 
     std::ifstream in_file(in_path, std::ifstream::binary);
 
@@ -250,7 +200,7 @@ void BlockCompressor::compress_pa_hash(const std::string& in_path, const std::st
     std::uint64_t size = in_file.tellg() - (long)skip_header;
     in_file.seekg(skip_header, std::ifstream::beg);
 
-    const std::uint64_t BIT_VECTOR_SIZE = b.m_buffer.size();
+    const std::uint64_t BIT_VECTOR_SIZE = bc.m_buffer.size();
     const std::uint64_t PA_HASH_LINE_SIZE = (sizeof(std::uint64_t) + BIT_VECTOR_SIZE);
 
     if(size % PA_HASH_LINE_SIZE != 0)
@@ -265,17 +215,15 @@ void BlockCompressor::compress_pa_hash(const std::string& in_path, const std::st
     {
         in_file.read(reinterpret_cast<char*>(&hash), sizeof(std::uint64_t));
         in_file.read(reinterpret_cast<char*>(bit_vector), BIT_VECTOR_SIZE);
-        b.process_binarized_bit_vector(hash, bit_vector);
+        bc.process_binarized_bit_vector(hash, bit_vector);
     }
     
     delete[] bit_vector;
 }
 
-void BlockCompressor::compress_cmbf(const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
+void BlockCompressor::compress_cmbf(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
 {
-    BlockCompressor b;
-
-    b.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
+    bc.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
 
     std::ifstream in_file(in_path, std::ifstream::binary);
     
@@ -283,8 +231,8 @@ void BlockCompressor::compress_cmbf(const std::string& in_path, const std::strin
     std::uint64_t size = in_file.tellg() - (long)skip_header;
     in_file.seekg(skip_header, std::ifstream::beg);
 
-    const std::uint64_t CMBF_LINE_SIZE = b.m_buffer.size();
-    const std::uint64_t CMBF_BLOCK_SIZE = b.in_buffer.size();
+    const std::uint64_t CMBF_LINE_SIZE = bc.m_buffer.size();
+    const std::uint64_t CMBF_BLOCK_SIZE = bc.in_buffer.size();
 
     if(size % CMBF_LINE_SIZE != 0)
         throw std::runtime_error("File size doesn't match [<bit_vector>], check the header size");
@@ -292,31 +240,31 @@ void BlockCompressor::compress_cmbf(const std::string& in_path, const std::strin
     //Write full blocks
     const std::uint64_t NB_FULL_BLOCKS = size / CMBF_BLOCK_SIZE;
 
-    b.in_buffer_current_size = 0;
+    bc.in_buffer_current_size = 0;
 
     for(std::uint64_t i = 0; i < NB_FULL_BLOCKS; ++i)
     {
-        in_file.read(reinterpret_cast<char*>(b.in_buffer.data()), CMBF_BLOCK_SIZE);
-        b.write_block();
+        in_file.read(reinterpret_cast<char*>(bc.in_buffer.data()), CMBF_BLOCK_SIZE);
+        bc.write_block();
     }
 
     //Write last block
     if(size % CMBF_BLOCK_SIZE != 0)
     {
         //Preset buffer tracking variable
-        b.in_buffer_current_size = size % CMBF_BLOCK_SIZE; //Remaining bit_vectors
+        bc.in_buffer_current_size = size % CMBF_BLOCK_SIZE; //Remaining bit_vectors
 
-        in_file.read(reinterpret_cast<char*>(b.in_buffer.data()), b.in_buffer_current_size);
-        b.write_block();
+        in_file.read(reinterpret_cast<char*>(bc.in_buffer.data()), bc.in_buffer_current_size);
+        bc.write_block();
     }
 
     //Prevent instance from writing data on destruction (excepted Elias-Fano)
-    b.in_buffer_current_size = 0;
-    b.previous_hash = b.maximum_hash;
+    bc.in_buffer_current_size = 0;
+    bc.previous_hash = bc.maximum_hash;
 }
 
 
-extern "C" std::string plugin_name() { return "BlockCompressor"; }
+/*extern "C" std::string plugin_name() { return "BlockCompressor"; }
 extern "C" int use_template() { return 0; }
 extern "C" km::IMergePlugin* create0() { return new BlockCompressor(); }
-extern "C" void destroy(km::IMergePlugin* p) { delete p; }
+extern "C" void destroy(km::IMergePlugin* p) { delete p; }*/

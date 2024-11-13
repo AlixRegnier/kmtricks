@@ -1,5 +1,7 @@
-#include <BlockCompressor.h>
-#include <BlockDecompressor.h>
+#include <BlockCompressorLZMA.h>
+#include <BlockDecompressorLZMA.h>
+#include <BlockCompressorZSTD.h>
+#include <BlockDecompressorZSTD.h>
 #include <algorithm>
 #include <filesystem>
 #include <random>
@@ -145,7 +147,8 @@ void measure_random_sorted_hash_cmbf(std::uint64_t minimum_hash, std::uint64_t m
 void measure_compression_time_cmbf(const std::string& matrix_path, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short header)
 {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    BlockCompressor::compress_cmbf(matrix_path, "test_compression", config_path, hash_info_path, partition, header);
+    BlockCompressorLZMA bc;
+    BlockCompressorLZMA::compress_cmbf(bc, matrix_path, "test_compression", config_path, hash_info_path, partition, header);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
     std::cout << "Partition compression time: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " s" << std::endl;
@@ -186,11 +189,36 @@ void measure_decompression_time_cmbf(BlockDecompressor& bd)
     bd.unload();
 }
 
+int benchCMBF(BlockDecompressor& bd, std::ifstream& matrix, const std::string& matrix_path, const std::string& config_path, const std::string& hash_info_path, unsigned partition, std::uint64_t minimum_hash, std::uint64_t maximum_hash, unsigned short header)
+{
+    //All consecutives hash values
+    std::cout << "###Equality test###" << std::endl;
+    ASSERT(are_equal_cmbf(minimum_hash, maximum_hash, matrix, bd, header), "Original matrix and compressed matrix are not equivalent !");
+    std::cout << "Both matrix returned same results for each hash" << std::endl;
+
+    std::cout << "###Random hash###" << std::endl;
+    measure_random_hash_cmbf(minimum_hash, maximum_hash, matrix, bd, header);
+
+    std::cout << "###Sorted hash###" << std::endl;
+    measure_random_sorted_hash_cmbf(minimum_hash, maximum_hash, matrix, bd, header);
+    
+    std::cout << "###Full read###" << std::endl;
+    measure_full_read_time_cmbf(minimum_hash, maximum_hash, matrix, bd, header);
+
+    std::cout << "###Compression###" << std::endl;
+    measure_compression_time_cmbf(matrix_path, config_path, hash_info_path, partition, header);
+
+    std::cout << "###Decompression###" << std::endl;
+    measure_decompression_time_cmbf(bd);
+
+    return 0;
+}
+
 int main(int argc, char ** argv)
 {
-    if(argc != 8)
+    if(argc != 9)
     {
-        std::cout << "Usage: ./benchmark <matrix> <hash_info_path> <partition> <config> <compressed_matrix> <ef> <header>\n\n";
+        std::cout << "Usage: ./benchmark <matrix> <hash_info_path> <partition> <config> <compressed_matrix> <ef> <header> <\"LZMA\"|\"ZSTD\">\n\n";
         exit(2);
     }
 
@@ -210,6 +238,8 @@ int main(int argc, char ** argv)
 
     unsigned short header = (unsigned short)std::stoi(argv[7]);
 
+    std::string compressor = argv[8];
+
     //Open matrix
     matrix.open(argv[1], std::ifstream::binary);
 
@@ -217,34 +247,29 @@ int main(int argc, char ** argv)
     std::uint64_t minimum_hash = km::HashWindow(hash_info_path).get_lower(partition);
     std::uint64_t maximum_hash = km::HashWindow(hash_info_path).get_upper(partition);
 
-    BlockDecompressor bd(config_path, matrix_compressed_path, ef_path);
+
+
+
     
     if(path.extension() == ".pa_hash")
-        std::cout << "Not handled yet (need to code dichotomy to search fast same hash value)" << std::endl;
+        std::cout << "Not handled yet (need to code binary search to search fast same hash value)" << std::endl;
     else if(path.extension() == ".cmbf")
     {
-        //All consecutives hash values
-        std::cout << "###Equality test###" << std::endl;
-        ASSERT(are_equal_cmbf(minimum_hash, maximum_hash, matrix, bd, header), "Original matrix and compressed matrix are not equivalent !");
-        std::cout << "Both matrix returned same results for each hash" << std::endl;
-
-        std::cout << "###Random hash###" << std::endl;
-        measure_random_hash_cmbf(minimum_hash, maximum_hash, matrix, bd, header);
-
-        std::cout << "###Sorted hash###" << std::endl;
-        measure_random_sorted_hash_cmbf(minimum_hash, maximum_hash, matrix, bd, header);
-        
-        std::cout << "###Full read###" << std::endl;
-        measure_full_read_time_cmbf(minimum_hash, maximum_hash, matrix, bd, header);
-
-        std::cout << "###Compression###" << std::endl;
-        measure_compression_time_cmbf(matrix_path, config_path, hash_info_path, partition, header);
-
-        std::cout << "###Decompression###" << std::endl;
-        measure_decompression_time_cmbf(bd);
-
+        if(compressor == "LZMA")
+        {
+            BlockDecompressorLZMA bd(config_path, matrix_compressed_path, ef_path);
+            benchCMBF(bd, matrix, matrix_path, config_path, hash_info_path, partition, minimum_hash, maximum_hash, header);
+        }
+        else if(compressor == "ZSTD")
+        {
+            BlockDecompressorZSTD bd(config_path, matrix_compressed_path, ef_path);
+            benchCMBF(bd, matrix, matrix_path, config_path, hash_info_path, partition, minimum_hash, maximum_hash, header);
+        }
+        else
+            throw std::runtime_error("Unknown decompressor: '" + compressor + "'");
     }
     else
-        std::cout << "Extension not recognized need { .pa_hash , .cmbf }" << std::endl;
+        std::cout << "Extension not recognized, need: { .pa_hash , .cmbf }" << std::endl;
 
+    return 0;
 }
