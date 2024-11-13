@@ -39,8 +39,8 @@ class BlockDecompressor
         //Decode i-th block if not currently loaded in memory
         void decode_block(std::size_t i);
 
-        //Decompress "in_buffer" --> "out_buffer", must modify "decode_block_size" variable
-        virtual void decompress_buffer(std::size_t in_size) = 0;
+        //Decompress "in_buffer" --> "out_buffer", must return the number of written bytes in out_buffer
+        virtual std::size_t decompress_buffer(std::size_t in_size) = 0;
     public:
         BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path);
 

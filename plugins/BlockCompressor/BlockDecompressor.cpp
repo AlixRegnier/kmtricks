@@ -37,7 +37,7 @@ void BlockDecompressor::decode_block(std::size_t i)
     matrix.seekg(pos_a); //Seek block location
     matrix.read(reinterpret_cast<char*>(in_buffer.data()), block_encoded_size); //Read block
 
-    decompress_buffer(block_encoded_size);
+    decoded_block_size = decompress_buffer(block_encoded_size);
     
     //Check if decoded size match expected size (taking into account the possibility of a smaller last block)
     if(decoded_block_size != BLOCK_DECODED_SIZE && (i + 2 != ef_size))

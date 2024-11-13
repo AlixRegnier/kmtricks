@@ -12,7 +12,9 @@ include(ExternalProject)
 include_directories(
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/LZMA
+    ${PROJECT_SOURCE_DIR}/ZSTD
     ${PROJECT_BINARY_DIR}/xz-utils/include
+    ${PROJECT_BINARY_DIR}/zstd/include
     ${PROJECT_BINARY_DIR}/sdsl/include
 )
 
@@ -36,6 +38,19 @@ ExternalProject_Add(xz-utils
     BUILD_COMMAND ""
     
     #BUILD_BYPRODUCTS ${XZ_LIB} ${XZ_SOURCES}
+)
+
+# Download and build Zstd as an External Project
+ExternalProject_Add(zstd
+    GIT_REPOSITORY https://github.com/facebook/zstd.git
+    GIT_TAG v1.5.5
+    SOURCE_SUBDIR build/cmake
+    CMAKE_ARGS 
+        -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/zstd
+        -DZSTD_BUILD_STATIC=OFF
+        -DZSTD_BUILD_SHARED=ON
+        -DZSTD_BUILD_PROGRAMS=OFF
+        -DZSTD_BUILD_TESTS=OFF
 )
 
 # Download and build SDSL as an External Project
@@ -96,15 +111,47 @@ add_executable(mainBlockDecompressorLZMA
 )
 target_link_libraries(mainBlockDecompressorLZMA PUBLIC BlockDecompressorLZMA)
 
+####### ZSTD #######
+
+
+# Build the BlockCompressorZSTD library
+add_library(BlockCompressorZSTD SHARED
+    ZSTD/BlockCompressorZSTD.cpp
+    ZSTD/BlockCompressorZSTD.h
+)
+add_dependencies(BlockCompressorZSTD zstd)
+target_link_libraries(BlockCompressorZSTD PUBLIC BlockCompressor ${PROJECT_BINARY_DIR}/zstd/lib/libzstd.so ${PROJECT_BINARY_DIR}/sdsl/lib/libsdsl.so)
+
+# Build the BlockDecompressorZSTD library
+add_library(BlockDecompressorZSTD STATIC
+    ZSTD/BlockDecompressorZSTD.cpp
+    ZSTD/BlockDecompressorZSTD.h
+)
+add_dependencies(BlockDecompressorZSTD zstd)
+target_link_libraries(BlockDecompressorZSTD PUBLIC BlockDecompressor ${PROJECT_BINARY_DIR}/zstd/lib/libzstd.so ${PROJECT_BINARY_DIR}/sdsl/lib/libsdsl.so)
+
+# Build the mainBlockCompressorZSTD executable
+add_executable(mainBlockCompressorZSTD
+    ZSTD/mainBlockCompressorZSTD.cpp
+)
+target_link_libraries(mainBlockCompressorZSTD PUBLIC BlockCompressorZSTD)
+
+# Build the mainBlockDecompressorZSTD executable
+add_executable(mainBlockDecompressorZSTD
+    ZSTD/mainBlockDecompressorZSTD.cpp
+)
+target_link_libraries(mainBlockDecompressorZSTD PUBLIC BlockDecompressorZSTD)
+
+####### benchmark #######
+
 # Build benchmarks
 add_executable(benchmark
     benchmark.cpp
 )
-target_link_libraries(benchmark PUBLIC BlockCompressorLZMA BlockDecompressorLZMA)
+target_link_libraries(benchmark PUBLIC BlockCompressorLZMA BlockDecompressorLZMA BlockCompressorZSTD BlockDecompressorZSTD)
 
 
-
-list(APPEND BLOCK_COMPRESSOR_DEP_KMTRICKS BlockCompressor BlockDecompressor BlockCompressorLZMA BlockDecompressorLZMA mainBlockCompressorLZMA mainBlockDecompressorLZMA benchmark)
+list(APPEND BLOCK_COMPRESSOR_DEP_KMTRICKS BlockCompressor BlockDecompressor BlockCompressorLZMA BlockDecompressorLZMA mainBlockCompressorLZMA mainBlockDecompressorLZMA BlockCompressorZSTD BlockDecompressorZSTD mainBlockCompressorZSTD mainBlockDecompressorZSTD benchmark)
 
 foreach(BC_DEP ${BLOCK_COMPRESSOR_DEP_KMTRICKS})
   target_link_libraries(${BC_DEP} PRIVATE build_type_flags headers)

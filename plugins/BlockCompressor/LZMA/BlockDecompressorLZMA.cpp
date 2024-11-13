@@ -33,11 +33,13 @@ void BlockDecompressorLZMA::assert_lzma_ret(lzma_ret code)
     }
 }
 
-void BlockDecompressorLZMA::decompress_buffer(std::size_t in_size)
+std::size_t BlockDecompressorLZMA::decompress_buffer(std::size_t in_size)
 {
     std::size_t zero = 0; //Must be set to 0 before using lzma_raw_buffer_encode()
-    decoded_block_size = 0; //Must be set to 0 before using lzma_raw_buffer_encode()
+    std::size_t written_bytes = 0; //Must be set to 0 before using lzma_raw_buffer_encode()
 
-    lzma_ret code = lzma_raw_buffer_decode(filters, NULL, in_buffer.data(), &zero, in_size, out_buffer.data(), &decoded_block_size, BLOCK_DECODED_SIZE);
+    lzma_ret code = lzma_raw_buffer_decode(filters, NULL, in_buffer.data(), &zero, in_size, out_buffer.data(), &written_bytes, BLOCK_DECODED_SIZE);
     assert_lzma_ret(code);
+
+    return written_bytes;
 }
