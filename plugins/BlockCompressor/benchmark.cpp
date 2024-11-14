@@ -144,11 +144,10 @@ void measure_random_sorted_hash_cmbf(std::uint64_t minimum_hash, std::uint64_t m
     delete[] bit_vector;
 }
 
-void measure_compression_time_cmbf(const std::string& matrix_path, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short header)
+void measure_compression_time_cmbf(BlockCompressor& compressor, const std::string& matrix_path, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short header)
 {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    BlockCompressorLZMA bc;
-    BlockCompressorLZMA::compress_cmbf(bc, matrix_path, "test_compression", config_path, hash_info_path, partition, header);
+    BlockCompressor::compress_cmbf(compressor, matrix_path, "test_compression", config_path, hash_info_path, partition, header);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
     std::cout << "Partition compression time: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " s" << std::endl;
@@ -189,7 +188,7 @@ void measure_decompression_time_cmbf(BlockDecompressor& bd)
     bd.unload();
 }
 
-int benchCMBF(BlockDecompressor& bd, std::ifstream& matrix, const std::string& matrix_path, const std::string& config_path, const std::string& hash_info_path, unsigned partition, std::uint64_t minimum_hash, std::uint64_t maximum_hash, unsigned short header)
+int benchCMBF(BlockCompressor& compressor, BlockDecompressor& bd, std::ifstream& matrix, const std::string& matrix_path, const std::string& config_path, const std::string& hash_info_path, unsigned partition, std::uint64_t minimum_hash, std::uint64_t maximum_hash, unsigned short header)
 {
     //All consecutives hash values
     std::cout << "###Equality test###" << std::endl;
@@ -206,7 +205,7 @@ int benchCMBF(BlockDecompressor& bd, std::ifstream& matrix, const std::string& m
     measure_full_read_time_cmbf(minimum_hash, maximum_hash, matrix, bd, header);
 
     std::cout << "###Compression###" << std::endl;
-    measure_compression_time_cmbf(matrix_path, config_path, hash_info_path, partition, header);
+    measure_compression_time_cmbf(compressor, matrix_path, config_path, hash_info_path, partition, header);
 
     std::cout << "###Decompression###" << std::endl;
     measure_decompression_time_cmbf(bd);
@@ -257,13 +256,15 @@ int main(int argc, char ** argv)
     {
         if(compressor == "LZMA")
         {
+            BlockCompressorLZMA bc;
             BlockDecompressorLZMA bd(config_path, matrix_compressed_path, ef_path);
-            benchCMBF(bd, matrix, matrix_path, config_path, hash_info_path, partition, minimum_hash, maximum_hash, header);
+            benchCMBF(bc, bd, matrix, matrix_path, config_path, hash_info_path, partition, minimum_hash, maximum_hash, header);
         }
         else if(compressor == "ZSTD")
         {
+            BlockCompressorZSTD bc;
             BlockDecompressorZSTD bd(config_path, matrix_compressed_path, ef_path);
-            benchCMBF(bd, matrix, matrix_path, config_path, hash_info_path, partition, minimum_hash, maximum_hash, header);
+            benchCMBF(bc, bd, matrix, matrix_path, config_path, hash_info_path, partition, minimum_hash, maximum_hash, header);
         }
         else
             throw std::runtime_error("Unknown decompressor: '" + compressor + "'");
