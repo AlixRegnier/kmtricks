@@ -65,6 +65,8 @@ class BlockCompressor : public km::IMergePlugin
         //Write out Elias-Fano representation of blocks starting position
         void write_elias_fano();
         
+        //Writes header from input file (size is usually 49 bytes)
+        void write_header(std::ifstream& in_file, unsigned short header_size);
     public:
         BlockCompressor();
         ~BlockCompressor();
@@ -85,11 +87,11 @@ class BlockCompressor : public km::IMergePlugin
         static void compress_cmbf(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header = 49);
 
         //As kmtricks plugin only: 'config_path' is the string passed to --plugin-config, path to the config file
-        virtual void configure(const std::string& config_path) override;
+        void configure(const std::string& config_path) override;
 
         //Configure instance when not used as kmtricks plugin. 
         //Should not be directly used. In that case, this method is called by compress_XXX
-        virtual void no_plugin_configure(const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition);
+        void no_plugin_configure(const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition);
 };
 
 #endif

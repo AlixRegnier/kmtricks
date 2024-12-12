@@ -19,9 +19,9 @@ class BlockDecompressorLZMA : public BlockDecompressor
 
         std::size_t decompress_buffer(std::size_t in_size) override;
     public:
-        BlockDecompressorLZMA(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path);
+        BlockDecompressorLZMA(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size = 49);
 
-        BlockDecompressorLZMA(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path);
+        BlockDecompressorLZMA(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size = 49);
 };
 
 #endif

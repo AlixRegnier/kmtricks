@@ -1,8 +1,8 @@
 #include <BlockDecompressorZSTD.h>
 
-BlockDecompressorZSTD::BlockDecompressorZSTD(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path) : BlockDecompressorZSTD(ConfigurationLiterate(config_path), matrix_path, ef_path) {}
+BlockDecompressorZSTD::BlockDecompressorZSTD(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size) : BlockDecompressorZSTD(ConfigurationLiterate(config_path), matrix_path, ef_path, header_size) {}
 
-BlockDecompressorZSTD::BlockDecompressorZSTD(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path) : BlockDecompressor(config, matrix_path, ef_path)
+BlockDecompressorZSTD::BlockDecompressorZSTD(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size) : BlockDecompressor(config, matrix_path, ef_path, header_size)
 {
     context = ZSTD_createDCtx();
     

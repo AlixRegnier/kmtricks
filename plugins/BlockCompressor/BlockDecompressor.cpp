@@ -1,12 +1,14 @@
 #include <BlockDecompressor.h>
 
-BlockDecompressor::BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path) : BlockDecompressor(ConfigurationLiterate(config_path), matrix_path, ef_path) {}
+BlockDecompressor::BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size) : BlockDecompressor(ConfigurationLiterate(config_path), matrix_path, ef_path, header_size) {}
 
-BlockDecompressor::BlockDecompressor(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path)
+BlockDecompressor::BlockDecompressor(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size)
 {
     this->config = ConfigurationLiterate(config);
-    matrix.open(matrix_path, std::ifstream::binary);
+    this->header_size = header_size;
 
+    matrix.open(matrix_path, std::ifstream::binary);
+    
     //Initialize variables according to configurations
     bit_vector_size = ((config.get_nb_samples() + 7) / 8);
     BLOCK_DECODED_SIZE = bit_vector_size * config.get_bit_vectors_per_block();
@@ -34,7 +36,7 @@ void BlockDecompressor::decode_block(std::size_t i)
     if(block_encoded_size > in_buffer.size())
         in_buffer.resize(block_encoded_size);
 
-    matrix.seekg(pos_a); //Seek block location
+    matrix.seekg(pos_a + header_size); //Seek block location (+ header_size offset)
     matrix.read(reinterpret_cast<char*>(in_buffer.data()), block_encoded_size); //Read block
 
     decoded_block_size = decompress_buffer(block_encoded_size);
@@ -84,6 +86,12 @@ void BlockDecompressor::decompress_all(const std::string& out_path)
     std::ofstream out_file;
     out_file.open(out_path, std::ofstream::binary);
 
+    //Write out header
+    char * header = new char[header_size];
+    matrix.read(header, header_size);
+    out_file.write(header, header_size);
+    delete[] header;
+    
     //i < ef_size - 1 but as it is unsigned, avoid possible underflows if ef_pos is empty (but it should never occur)
     for(std::size_t i = 0; i + 1 < ef_size; ++i)
     {

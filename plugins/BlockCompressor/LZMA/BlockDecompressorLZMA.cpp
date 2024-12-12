@@ -1,8 +1,8 @@
 #include <BlockDecompressorLZMA.h>
 
-BlockDecompressorLZMA::BlockDecompressorLZMA(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path) : BlockDecompressorLZMA(ConfigurationLiterate(config_path), matrix_path, ef_path) {}
+BlockDecompressorLZMA::BlockDecompressorLZMA(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size) : BlockDecompressorLZMA(ConfigurationLiterate(config_path), matrix_path, ef_path, header_size) {}
 
-BlockDecompressorLZMA::BlockDecompressorLZMA(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path) : BlockDecompressor(config, matrix_path, ef_path)
+BlockDecompressorLZMA::BlockDecompressorLZMA(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size) : BlockDecompressor(config, matrix_path, ef_path, header_size)
 {
     //Set LZMA settings
     if (lzma_lzma_preset(&opt_lzma, config.get_preset_level()))

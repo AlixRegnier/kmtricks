@@ -8,7 +8,7 @@ int main(int argc, char ** argv)
 {
     if(argc != 7)
     {
-        std::cout << "Usage: compress <matrix> <config> <hash_info> <partition> <prefix> <header>" << std::endl;
+        std::cout << "Usage: ./mainBlockCompressorLZMA <matrix> <config> <hash_info> <partition> <header> <prefix>" << std::endl;
         return 2;
     }
 

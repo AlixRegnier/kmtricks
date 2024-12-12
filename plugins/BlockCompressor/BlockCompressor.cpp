@@ -190,15 +190,16 @@ void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const s
     init_compressor();
 }
 
-void BlockCompressor::compress_pa_hash(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
+void BlockCompressor::compress_pa_hash(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short header_size)
 {
     bc.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
 
     std::ifstream in_file(in_path, std::ifstream::binary);
 
     in_file.seekg(0, std::ifstream::end);
-    std::uint64_t size = in_file.tellg() - (long)skip_header;
-    in_file.seekg(skip_header, std::ifstream::beg);
+    std::uint64_t size = in_file.tellg() - (long)header_size; //Get file size
+
+    bc.write_header(in_file, header_size);
 
     const std::uint64_t BIT_VECTOR_SIZE = bc.m_buffer.size();
     const std::uint64_t PA_HASH_LINE_SIZE = (sizeof(std::uint64_t) + BIT_VECTOR_SIZE);
@@ -221,15 +222,16 @@ void BlockCompressor::compress_pa_hash(BlockCompressor& bc, const std::string& i
     delete[] bit_vector;
 }
 
-void BlockCompressor::compress_cmbf(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header)
+void BlockCompressor::compress_cmbf(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short header_size)
 {
     bc.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
 
     std::ifstream in_file(in_path, std::ifstream::binary);
     
     in_file.seekg(0, std::ifstream::end);
-    std::uint64_t size = in_file.tellg() - (long)skip_header;
-    in_file.seekg(skip_header, std::ifstream::beg);
+    std::uint64_t size = in_file.tellg() - (long)header_size;
+    
+    bc.write_header(in_file, header_size);
 
     const std::uint64_t CMBF_LINE_SIZE = bc.m_buffer.size();
     const std::uint64_t CMBF_BLOCK_SIZE = bc.in_buffer.size();
@@ -263,6 +265,19 @@ void BlockCompressor::compress_cmbf(BlockCompressor& bc, const std::string& in_p
     bc.previous_hash = bc.maximum_hash;
 }
 
+void BlockCompressor::write_header(std::ifstream& in_file, unsigned short header_size){
+    in_file.seekg(0, std::ifstream::beg);
+
+    char * header = new char[header_size];
+
+    //Read header
+    in_file.read(header, header_size);
+
+    //Write header
+    m_out.write(header, header_size);
+
+    delete[] header;
+}
 
 /*extern "C" std::string plugin_name() { return "BlockCompressor"; }
 extern "C" int use_template() { return 0; }

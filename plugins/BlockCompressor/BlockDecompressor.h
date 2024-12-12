@@ -30,6 +30,7 @@ class BlockDecompressor
         //IO variables
         std::ifstream matrix; //Input file stream of compressed matrix
         std::ifstream ef_in; //Input file stream of serialized Elias-Fano
+        unsigned short header_size;
 
         //EF data
         sdsl::sd_vector<> ef; //Elias-Fano object used to store final blocks starting location
@@ -42,9 +43,9 @@ class BlockDecompressor
         //Decompress "in_buffer" --> "out_buffer", must return the number of written bytes in out_buffer
         virtual std::size_t decompress_buffer(std::size_t in_size) = 0;
     public:
-        BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path);
+        BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size = 49);
 
-        BlockDecompressor(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path);
+        BlockDecompressor(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size = 49);
 
         //Decodes the block containing the corresponding hash value and that return the corresponding bit vector address
         //Returns nullptr if hash is out of range
