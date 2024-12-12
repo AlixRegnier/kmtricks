@@ -1,5 +1,6 @@
 #include <BlockCompressorZSTD.h>
 
+//Return the number of written bytes
 std::size_t BlockCompressorZSTD::compress_buffer(std::size_t in_size)
 {
     return ZSTD_compress2(context, out_buffer.data(), out_buffer.size(), in_buffer.data(), in_size);
@@ -10,8 +11,8 @@ void BlockCompressorZSTD::init_compressor()
 {
     //Configure options and filters (compression level) 
     context = ZSTD_createCCtx();
-    
-    ZSTD_CCtx_setParameter(context, ZSTD_c_compressionLevel, ZSTD_maxCLevel());
+
+    ZSTD_CCtx_setParameter(context, ZSTD_c_compressionLevel, ZSTD_defaultCLevel());
 
     //Compression is not inplace, so we need to allocate out_buffer once for storing data
     //Get maximum estimated (upper bound) encoded size
@@ -25,6 +26,7 @@ BlockCompressorZSTD::~BlockCompressorZSTD()
     ZSTD_freeCCtx(context);
 }
 
+//kmtricks bindings
 extern "C" std::string plugin_name() { return "BlockCompressorZSTD"; }
 extern "C" int use_template() { return 0; }
 extern "C" km::IMergePlugin* create0() { return new BlockCompressorZSTD(); }
