@@ -23,13 +23,16 @@ BlockCompressor::BlockCompressor()
 //Use destructor for writing possible missing bit_vectors and the Elias-Fano representation of block starting locations
 BlockCompressor::~BlockCompressor()
 {
-    //Check for a possible underflow that would add a huge amount of buffers of zeroes
-    if(maximum_hash != previous_hash)
-       fill_zero_buffers(maximum_hash - previous_hash - 1); //Take into account last possible empty bit_vectors to be added to blocks
+    if(finalcheck)
+    {
+        //Check for a possible underflow that would add a huge amount of buffers of zeroes
+        if(maximum_hash != previous_hash)
+        fill_zero_buffers(maximum_hash - previous_hash - 1); //Take into account last possible empty bit_vectors to be added to blocks
 
-    //Write a smaller block if buffer isn't empty
-    if(in_buffer_current_size != 0)
-        write_block();
+        //Write a smaller block if buffer isn't empty
+        if(in_buffer_current_size != 0)
+            write_block();
+    }
 
     //Elias-Fano encoding
     write_elias_fano();
@@ -168,19 +171,17 @@ void BlockCompressor::configure(const std::string& config_path)
     init_compressor();
 }
 
-void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition)
+void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const std::string& config_path)
 {
     config.load(config_path);
 
-    minimum_hash = previous_hash = km::HashWindow(hash_info_path).get_lower(partition);
-    maximum_hash = km::HashWindow(hash_info_path).get_upper(partition);
+    minimum_hash = maximum_hash = 0;
 
     //Configure buffer size according to parameters
     m_buffer.resize((config.get_nb_samples() + 7) / 8);
-    std::string part_str = std::to_string(partition);
 
-    std::string output_path = out_prefix + part_str;
-    std::string ef_path = out_prefix + part_str + "_ef";
+    std::string output_path = out_prefix;
+    std::string ef_path = out_prefix + "_ef";
 
     m_out.open(output_path, std::ofstream::binary);
     ef_out.open(ef_path, std::ofstream::binary);
@@ -190,9 +191,12 @@ void BlockCompressor::no_plugin_configure(const std::string& out_prefix, const s
     init_compressor();
 }
 
-void BlockCompressor::compress_pa_hash(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short header_size)
+void BlockCompressor::compress_pa_hash(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, unsigned short header_size)
 {
-    bc.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
+    if(!std::filesystem::exists(in_path))
+        throw std::runtime_error("Partition file '" + in_path + "' was not found.");
+
+    bc.no_plugin_configure(out_prefix, config_path);
 
     std::ifstream in_file(in_path, std::ifstream::binary);
 
@@ -205,7 +209,7 @@ void BlockCompressor::compress_pa_hash(BlockCompressor& bc, const std::string& i
     const std::uint64_t PA_HASH_LINE_SIZE = (sizeof(std::uint64_t) + BIT_VECTOR_SIZE);
 
     if(size % PA_HASH_LINE_SIZE != 0)
-        throw std::runtime_error("File size doesn't match [<hash> <bit_vector>], check the header size");
+        throw std::runtime_error("File size doesn't match [<hash> <bit_vector>], check the header size or partition file");
 
     const std::uint64_t NB_HASH_BV = size / PA_HASH_LINE_SIZE;
     
@@ -219,12 +223,17 @@ void BlockCompressor::compress_pa_hash(BlockCompressor& bc, const std::string& i
         bc.process_binarized_bit_vector(hash, bit_vector);
     }
     
+    //Prevent instance from writing data on destruction (excepted Elias-Fano)
+    bc.no_final_check();
     delete[] bit_vector;
 }
 
-void BlockCompressor::compress_cmbf(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short header_size)
+void BlockCompressor::compress_cmbf(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, unsigned short header_size)
 {
-    bc.no_plugin_configure(out_prefix, config_path, hash_info_path, partition);
+    if(!std::filesystem::exists(in_path))
+        throw std::runtime_error("Partition file '" + in_path + "' was not found.");
+
+    bc.no_plugin_configure(out_prefix, config_path);
 
     std::ifstream in_file(in_path, std::ifstream::binary);
     
@@ -237,7 +246,7 @@ void BlockCompressor::compress_cmbf(BlockCompressor& bc, const std::string& in_p
     const std::uint64_t CMBF_BLOCK_SIZE = bc.in_buffer.size();
 
     if(size % CMBF_LINE_SIZE != 0)
-        throw std::runtime_error("File size doesn't match [<bit_vector>], check the header size");
+        throw std::runtime_error("File size doesn't match [<bit_vector>], check the header size or partition file");
 
     //Write full blocks
     const std::uint64_t NB_FULL_BLOCKS = size / CMBF_BLOCK_SIZE;
@@ -261,8 +270,7 @@ void BlockCompressor::compress_cmbf(BlockCompressor& bc, const std::string& in_p
     }
 
     //Prevent instance from writing data on destruction (excepted Elias-Fano)
-    bc.in_buffer_current_size = 0;
-    bc.previous_hash = bc.maximum_hash;
+    bc.no_final_check();
 }
 
 void BlockCompressor::write_header(std::ifstream& in_file, unsigned short header_size){
@@ -277,6 +285,11 @@ void BlockCompressor::write_header(std::ifstream& in_file, unsigned short header
     m_out.write(header, header_size);
 
     delete[] header;
+}
+
+void BlockCompressor::no_final_check()
+{
+    finalcheck = false;
 }
 
 /*extern "C" std::string plugin_name() { return "BlockCompressor"; }

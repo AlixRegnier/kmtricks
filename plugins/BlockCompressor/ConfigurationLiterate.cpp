@@ -1,6 +1,7 @@
 #include <ConfigurationLiterate.h>
 #include <filesystem>
 
+//'load_file' should be set to true if file properties have to be loaded
 ConfigurationLiterate::ConfigurationLiterate(const std::string& filename, bool load_file) 
 { 
     load(filename, load_file);
@@ -9,7 +10,7 @@ ConfigurationLiterate::ConfigurationLiterate(const std::string& filename, bool l
 void ConfigurationLiterate::load(const std::string& filename, bool read_file)
 {
     this->filename = filename;
-    if(read_file && std::filesystem::exists(filename))
+    if(read_file)
         read();
 }
 
@@ -22,7 +23,7 @@ void ConfigurationLiterate::read()
     //  ...
 
     if(!std::filesystem::exists(filename))
-        throw std::runtime_error("File: " + filename + " does not exist !");
+        throw std::runtime_error("Configuration file '" + filename + "' was not found !");
 
     std::string property;
     std::size_t value;

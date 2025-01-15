@@ -14,6 +14,7 @@
 #include <iostream>
 #include <cstring>
 #include <algorithm>
+#include <filesystem>
 
 //Elias-Fano encoding
 #include <sdsl/bit_vectors.hpp>
@@ -23,6 +24,8 @@ using count_type = typename km::selectC<DMAX_C>::type;
 class BlockCompressor : public km::IMergePlugin
 {
     protected:
+        bool finalcheck = true;
+
         //Properties
         ConfigurationLiterate config; //Configuration class { preset_level, bit_vectors_per_block, nb_samples }
 
@@ -81,17 +84,19 @@ class BlockCompressor : public km::IMergePlugin
         void process_binarized_bit_vector(std::uint64_t hash, const std::uint8_t* bit_vector);
 
         //Compress hash:pa:bin kmtricks matrix
-        static void compress_pa_hash(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header = 49);
+        static void compress_pa_hash(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, unsigned short skip_header = 49);
 
         //Compress hash:bf:bin kmtricks matrix
-        static void compress_cmbf(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition, unsigned short skip_header = 49);
+        static void compress_cmbf(BlockCompressor& bc, const std::string& in_path, const std::string& out_prefix, const std::string& config_path, unsigned short skip_header = 49);
 
         //As kmtricks plugin only: 'config_path' is the string passed to --plugin-config, path to the config file
         void configure(const std::string& config_path) override;
 
         //Configure instance when not used as kmtricks plugin. 
         //Should not be directly used. In that case, this method is called by compress_XXX
-        void no_plugin_configure(const std::string& out_prefix, const std::string& config_path, const std::string& hash_info_path, unsigned partition);
+        void no_plugin_configure(const std::string& out_prefix, const std::string& config_path);
+
+        void no_final_check();
 };
 
 #endif
