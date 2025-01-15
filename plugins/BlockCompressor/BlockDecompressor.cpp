@@ -1,6 +1,6 @@
 #include <BlockDecompressor.h>
 
-BlockDecompressor::BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size) : BlockDecompressor(ConfigurationLiterate(config_path), matrix_path, ef_path, header_size) {}
+BlockDecompressor::BlockDecompressor(const std::string& config_path, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size) : BlockDecompressor(ConfigurationLiterate(config_path, true), matrix_path, ef_path, header_size) {}
 
 BlockDecompressor::BlockDecompressor(const ConfigurationLiterate& config, const std::string& matrix_path, const std::string& ef_path, unsigned short header_size)
 {
