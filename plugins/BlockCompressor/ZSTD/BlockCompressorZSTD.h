@@ -3,7 +3,7 @@
 
 #include <BlockCompressor.h>
 
-//XZ utils main header
+//Zstd utils main header
 #include <zstd.h>
 
 class BlockCompressorZSTD : public BlockCompressor
