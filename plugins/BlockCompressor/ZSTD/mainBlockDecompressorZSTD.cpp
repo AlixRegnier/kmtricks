@@ -5,8 +5,8 @@ int main(int argc, char ** argv)
     if(argc != 6)
     {
         std::cout << "Usage: ./mainBlockDecompressorZSTD <config_file> <matrix> <ef_path> <header> <output>\n\n";
-        exit(2);
-    }
+        return 1;
+    }   
 
     unsigned short header_size = (unsigned short)std::stoi(argv[4]);
 

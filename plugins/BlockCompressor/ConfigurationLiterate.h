@@ -13,7 +13,7 @@
 class ConfigurationLiterate
 {
     public:
-        ConfigurationLiterate(const std::string& filename = "", bool load_file = true);
+        ConfigurationLiterate(const std::string& filename = "", bool load_file = false);
 
         //We may want to write out configuration in already existing file
         //<read_file> should be set to false in that case to not overwriting current configuration
